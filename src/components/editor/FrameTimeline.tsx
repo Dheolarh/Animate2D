@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Plus, Copy, Trash2 } from 'lucide-react';
+import { Plus, Copy, Trash2, GripVertical } from 'lucide-react';
 import { useSpriteEditor } from './context/SpriteEditorContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -13,9 +13,46 @@ const FrameTimeline: React.FC = () => {
     addFrame, 
     duplicateFrame, 
     deleteFrame,
+    reorderFrames,
     onionSkinFrameCount,
     setOnionSkinFrameCount
   } = useSpriteEditor();
+
+  const dragIndexRef = useRef<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    dragIndexRef.current = index;
+    e.dataTransfer.effectAllowed = 'move';
+    // Slightly transparent while dragging
+    (e.currentTarget as HTMLElement).style.opacity = '0.4';
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    (e.currentTarget as HTMLElement).style.opacity = '1';
+    setDragOverIndex(null);
+    dragIndexRef.current = null;
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, toIndex: number) => {
+    e.preventDefault();
+    const fromIndex = dragIndexRef.current;
+    if (fromIndex !== null && fromIndex !== toIndex) {
+      reorderFrames(fromIndex, toIndex);
+    }
+    setDragOverIndex(null);
+    dragIndexRef.current = null;
+  };
 
   return (
     <div className="h-40 border-t border-border bg-card flex flex-col flex-shrink-0">
@@ -49,17 +86,31 @@ const FrameTimeline: React.FC = () => {
             {frames.map((frame, index) => (
               <div
                 key={frame.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, index)}
                 onClick={() => selectFrame(frame.id)}
                 className={cn(
-                  "relative group flex-shrink-0 w-24 h-24 rounded-md border-2 overflow-hidden cursor-pointer transition-all bg-muted",
+                  "relative group flex-shrink-0 w-24 h-24 rounded-md border-2 overflow-hidden cursor-pointer transition-all bg-muted select-none",
                   currentFrameId === frame.id 
                     ? "border-primary shadow-sm" 
-                    : "border-transparent hover:border-border"
+                    : "border-transparent hover:border-border",
+                  dragOverIndex === index && dragIndexRef.current !== index
+                    ? "border-primary/70 ring-2 ring-primary/40 scale-105"
+                    : ""
                 )}
               >
                 {/* Frame Number */}
                 <div className="absolute top-1 left-1 bg-background/80 backdrop-blur-sm text-[9px] font-mono px-1 rounded text-foreground z-10">
                   {index + 1}
+                </div>
+
+                {/* Drag handle (visible on hover) */}
+                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-70 transition-opacity z-10 cursor-grab active:cursor-grabbing">
+                  <GripVertical className="w-3 h-3 text-muted-foreground rotate-90" />
                 </div>
 
                 {/* Actions (visible on hover) */}

@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, RotateCcw } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipBack, SkipForward } from 'lucide-react';
 import { useSpriteEditor } from '../context/SpriteEditorContext';
 
 interface AnimationPreviewProps {
@@ -10,22 +10,33 @@ interface AnimationPreviewProps {
 }
 
 const AnimationPreview: React.FC<AnimationPreviewProps> = ({ open, onOpenChange }) => {
-  const { animationSettings, canvasState } = useSpriteEditor();
+  const { animationSettings, canvasState, frames } = useSpriteEditor();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentFrame, setCurrentFrame] = useState(0);
+  const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
   const animationFrameRef = useRef<number | undefined>(undefined);
   const lastFrameTimeRef = useRef<number>(0);
 
-  // No frames available
-  const frames: any[] = [];
+  // Only frames that have thumbnail content
+  const playableFrames = frames.filter(f => f.thumbnail);
+  const frameCount = playableFrames.length;
+  const frameDuration = 1000 / (animationSettings.fps || 12);
 
-  // Calculate frame duration in milliseconds
-  const frameDuration = 1000 / animationSettings.fps;
-
-  // Animation loop
+  // Auto-play when dialog opens, reset when it closes
   useEffect(() => {
-    if (!isPlaying || !canvasRef.current) return;
+    if (open) {
+      setCurrentFrameIndex(0);
+      lastFrameTimeRef.current = 0;
+      setIsPlaying(frameCount > 1);
+    } else {
+      setIsPlaying(false);
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    }
+  }, [open, frameCount]);
+
+  // Animation loop using requestAnimationFrame at the configured FPS
+  useEffect(() => {
+    if (!isPlaying || frameCount === 0) return;
 
     const animate = (timestamp: number) => {
       if (!lastFrameTimeRef.current) {
@@ -35,7 +46,7 @@ const AnimationPreview: React.FC<AnimationPreviewProps> = ({ open, onOpenChange 
       const elapsed = timestamp - lastFrameTimeRef.current;
 
       if (elapsed >= frameDuration) {
-        setCurrentFrame((prev) => (prev + 1) % frames.length);
+        setCurrentFrameIndex(prev => (prev + 1) % frameCount);
         lastFrameTimeRef.current = timestamp;
       }
 
@@ -45,89 +56,124 @@ const AnimationPreview: React.FC<AnimationPreviewProps> = ({ open, onOpenChange 
     animationFrameRef.current = requestAnimationFrame(animate);
 
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     };
-  }, [isPlaying, frameDuration, frames.length]);
+  }, [isPlaying, frameDuration, frameCount]);
 
-  // Render current frame
+  // Render current frame thumbnail onto canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const frame = frames[currentFrame];
-    if (!frame || !frame.imageData) {
+    const frame = playableFrames[currentFrameIndex];
+    if (!frame?.thumbnail) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#f0f0f0';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       return;
     }
 
     const img = new Image();
     img.onload = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     };
-    img.src = frame.imageData;
-  }, [currentFrame, frames]);
+    img.src = frame.thumbnail;
+  }, [currentFrameIndex, playableFrames, canvasState.width, canvasState.height]);
 
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
-    if (!isPlaying) {
-      lastFrameTimeRef.current = 0;
-    }
-  };
+  const handlePlayPause = useCallback(() => {
+    setIsPlaying(p => {
+      if (!p) lastFrameTimeRef.current = 0;
+      return !p;
+    });
+  }, []);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setIsPlaying(false);
-    setCurrentFrame(0);
+    setCurrentFrameIndex(0);
     lastFrameTimeRef.current = 0;
-  };
+  }, []);
+
+  const handleStepBack = useCallback(() => {
+    setIsPlaying(false);
+    setCurrentFrameIndex(prev => (prev - 1 + frameCount) % frameCount);
+  }, [frameCount]);
+
+  const handleStepForward = useCallback(() => {
+    setIsPlaying(false);
+    setCurrentFrameIndex(prev => (prev + 1) % frameCount);
+  }, [frameCount]);
+
+  const hasFrames = frameCount > 0;
+  const totalSeconds = hasFrames ? (frameCount / (animationSettings.fps || 12)).toFixed(2) : '0.00';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Animation Preview</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Canvas */}
+        <div className="flex flex-col gap-3 overflow-y-auto flex-1 min-h-0">
+          {/* Canvas — constrained so it never pushes past the dialog */}
           <div className="flex items-center justify-center bg-muted/20 rounded-lg p-4">
-            <canvas
-              ref={canvasRef}
-              width={canvasState.width}
-              height={canvasState.height}
-              className="border border-border shadow-lg max-w-full h-auto"
-            />
+            {hasFrames ? (
+              <canvas
+                ref={canvasRef}
+                width={canvasState.width}
+                height={canvasState.height}
+                className="border border-border shadow-lg max-w-full max-h-[40vh] object-contain"
+                style={{ imageRendering: 'pixelated' }}
+              />
+            ) : (
+              <div className="text-center text-muted-foreground py-10">
+                <p className="text-lg font-medium">No frames to preview</p>
+                <p className="text-sm mt-1">Draw something on your frames first</p>
+              </div>
+            )}
           </div>
+
+          {/* Frame scrubber */}
+          {hasFrames && (
+            <input
+              type="range"
+              min={0}
+              max={frameCount - 1}
+              value={currentFrameIndex}
+              onChange={e => {
+                setIsPlaying(false);
+                setCurrentFrameIndex(parseInt(e.target.value));
+              }}
+              className="w-full accent-primary"
+            />
+          )}
 
           {/* Controls */}
-          <div className="flex items-center justify-center gap-4">
-            <Button onClick={handlePlayPause} size="lg">
-              {isPlaying ? (
-                <>
-                  <Pause className="w-4 h-4 mr-2" />
-                  Pause
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 mr-2" />
-                  Play
-                </>
-              )}
+          <div className="flex items-center justify-center gap-2">
+            <Button onClick={handleStepBack} variant="outline" size="icon" disabled={!hasFrames} title="Previous frame">
+              <SkipBack className="w-4 h-4" />
             </Button>
-            <Button onClick={handleReset} variant="outline" size="lg">
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Reset
+            <Button onClick={handlePlayPause} size="lg" disabled={!hasFrames || frameCount < 2}>
+              {isPlaying
+                ? <><Pause className="w-4 h-4 mr-2" />Pause</>
+                : <><Play className="w-4 h-4 mr-2" />Play</>
+              }
+            </Button>
+            <Button onClick={handleReset} variant="outline" size="icon" disabled={!hasFrames} title="Reset">
+              <RotateCcw className="w-4 h-4" />
+            </Button>
+            <Button onClick={handleStepForward} variant="outline" size="icon" disabled={!hasFrames} title="Next frame">
+              <SkipForward className="w-4 h-4" />
             </Button>
           </div>
 
-          {/* Info */}
-          <div className="text-center text-sm text-muted-foreground">
-            Frame {currentFrame + 1} of {frames.length} • {animationSettings.fps} FPS
+          {/* Info bar */}
+          <div className="flex items-center justify-between text-sm text-muted-foreground px-1">
+            <span>Frame {hasFrames ? currentFrameIndex + 1 : 0} / {frameCount}</span>
+            <span>{animationSettings.fps} FPS</span>
+            <span>{totalSeconds}s total</span>
           </div>
         </div>
       </DialogContent>

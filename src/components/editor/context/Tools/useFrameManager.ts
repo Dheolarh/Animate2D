@@ -163,6 +163,17 @@ export const useFrameManager = () => {
     }
   };
 
+  const reorderFrames = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+    setFrames(prev => {
+      pushHistory(prev, currentFrameId);
+      const next = [...prev];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
+  };
+
   // updateFrameData pushes to history, but debounced at 800ms so rapid strokes
   // collapse into a single undo step instead of flooding the stack.
   const updateFrameData = (id: string, fabricData: any, thumbnail: string) => {
@@ -198,6 +209,7 @@ export const useFrameManager = () => {
     duplicateFrame,
     deleteFrame,
     selectFrame,
+    reorderFrames,
     updateFrameData,
     undo,
     redo,

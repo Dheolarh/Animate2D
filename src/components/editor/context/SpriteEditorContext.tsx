@@ -41,6 +41,7 @@ interface SpriteEditorContextType {
   duplicateFrame: (id: string) => void;
   deleteFrame: (id: string) => void;
   selectFrame: (id: string) => void;
+  reorderFrames: (fromIndex: number, toIndex: number) => void;
   updateFrameData: (id: string, fabricData: any, thumbnail: string) => void;
 
   // Onion skin settings
