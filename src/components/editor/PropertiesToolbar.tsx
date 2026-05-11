@@ -33,8 +33,7 @@ const PropertiesToolbar: React.FC = () => {
 
   const showToolbar = activeTool === 'brush' || activeTool === 'eraser' || activeTool === 'rectangle' || activeTool === 'circle' || activeTool === 'triangle' || activeTool === 'text' || hasSelection;
 
-  if (!showToolbar) return null;
-
+  // Must be called unconditionally BEFORE any early returns (Rules of Hooks)
   // Extract RGBA for text stroke color picker
   const [r, g, b, a] = useMemo(() => {
     if (textStrokeColor.startsWith('rgba')) {
@@ -50,6 +49,8 @@ const PropertiesToolbar: React.FC = () => {
     }
     return [0, 0, 0, 1];
   }, [textStrokeColor]);
+
+  if (!showToolbar) return null;
 
   const updateStrokeColor = (newR: number, newG: number, newB: number, newA: number) => {
     changeTextStrokeColor(`rgba(${newR}, ${newG}, ${newB}, ${newA})`);

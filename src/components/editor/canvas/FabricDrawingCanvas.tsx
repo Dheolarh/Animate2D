@@ -232,6 +232,9 @@ const FabricDrawingCanvas: React.FC = () => {
 
     const saveState = () => {
       if (!currentFrameId) return;
+      // Force a synchronous render so deletions/modifications are reflected
+      // before we capture the thumbnail and JSON snapshot.
+      canvas.renderAll();
       const json = (canvas as any).toJSON(['erasable']);
       const thumbnail = canvas.toDataURL({
         format: 'png',
@@ -281,7 +284,9 @@ const FabricDrawingCanvas: React.FC = () => {
     };
 
     const handleMouseDown = (opt: any) => {
-      const tool = toolsMap[activeToolRef.current];
+      const currentTool = activeToolRef.current;
+
+      const tool = toolsMap[currentTool];
       if (tool && tool.onMouseDown) {
         tool.onMouseDown(canvas, opt, contextRef.current);
       }

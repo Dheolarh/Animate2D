@@ -1,11 +1,14 @@
 /**
  * Export utilities for Animate2D — all client-side, no server required.
  *
- * exportAsGif  → uses gifenc (ESM, ~15 KB)
- * exportAsWebM → uses browser MediaRecorder + canvas.captureStream()
+ * exportAsGif → gifenc (ESM, ~15 KB)
+ * exportAsMP4 → native VideoEncoder + mp4-muxer (no WASM, hardware-accelerated)
+ *
+ * Both re-render from fabricData at FULL resolution so the output is sharp.
  */
 
 import { GIFEncoder, quantize, applyPalette } from 'gifenc';
+import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
 import type { EditorFrame } from '../types/spriteEditor';
 
 interface ExportOptions {
@@ -14,39 +17,140 @@ interface ExportOptions {
   width: number;
   height: number;
   transparent: boolean;
+  backgroundColor: string;
 }
 
-/** Load an HTMLImageElement from a URL */
-const loadImage = (src: string): Promise<HTMLImageElement> =>
-  new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = src;
-  });
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
 
-/** Paint one frame onto an offscreen canvas context */
-const paintFrame = async (
-  ctx: CanvasRenderingContext2D,
+/**
+ * Render a frame at full resolution onto an offscreen canvas.
+ * Uses fabricData (via dynamic import of Fabric.js) for pixel-perfect quality.
+ * Falls back to the thumbnail if fabricData is unavailable.
+ */
+const renderFrameFullRes = async (
   frame: EditorFrame,
   width: number,
   height: number,
   transparent: boolean,
-) => {
-  ctx.clearRect(0, 0, width, height);
-  if (!transparent) {
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, width, height);
-  }
-  if (frame.thumbnail) {
-    const img = await loadImage(frame.thumbnail);
+  defaultBackgroundColor: string,
+): Promise<HTMLCanvasElement> => {
+  const fabric = await import('fabric');
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+
+  // Use StaticCanvas for lighter, offscreen rendering
+  const fc = new fabric.StaticCanvas(canvas, {
+    width,
+    height,
+    enableRetinaScaling: false,
+  });
+
+  if (frame.fabricData) {
+    // In Fabric v6+, loadFromJSON is async and returns a Promise
+    await fc.loadFromJSON(frame.fabricData);
+    
+    // Force dimensions
+    fc.setDimensions({ width, height });
+    
+    // If not transparent, ensure we have a solid background.
+    // We manually fill the underlying context to be 100% sure the pixels are there.
+    if (!transparent) {
+      const ctx = canvas.getContext('2d')!;
+      ctx.fillStyle = defaultBackgroundColor;
+      ctx.fillRect(0, 0, width, height);
+      fc.backgroundColor = defaultBackgroundColor;
+    } else {
+      fc.backgroundColor = 'transparent';
+    }
+    
+    // Ensure all objects are rendered
+    fc.renderAll();
+  } else if (frame.thumbnail) {
+    const ctx = canvas.getContext('2d')!;
+    if (!transparent) {
+      ctx.fillStyle = defaultBackgroundColor;
+      ctx.fillRect(0, 0, width, height);
+    }
+    const img = new Image();
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = reject;
+      img.src = frame.thumbnail!;
+    });
     ctx.drawImage(img, 0, 0, width, height);
   }
+
+  // We return the canvas element. Note: We don't dispose fc here because 
+  // it might clear the canvas. The canvas element will be garbage collected.
+  return canvas;
 };
 
-/** Trigger a file download from a Uint8Array or Blob */
+/**
+ * Packs animation frames into a single grid-based PNG (Sprite Sheet).
+ */
+export const exportAsSpriteSheet = async (opts: ExportOptions): Promise<{
+  url: string;
+  cols: number;
+  rows: number;
+  frameCount: number;
+  frameWidth: number;
+  frameHeight: number;
+}> => {
+  const { frames, width: fWidth, height: fHeight, transparent, backgroundColor } = opts;
+  const playable = frames.filter((f) => f.fabricData || f.thumbnail);
+  if (!playable.length) throw new Error('No frames to export');
+
+  const frameCount = playable.length;
+  const cols = Math.ceil(Math.sqrt(frameCount));
+  const rows = Math.ceil(frameCount / cols);
+
+  const sheetCanvas = document.createElement('canvas');
+  sheetCanvas.width = cols * fWidth;
+  sheetCanvas.height = rows * fHeight;
+  const sheetCtx = sheetCanvas.getContext('2d')!;
+
+  // Fill background if not transparent
+  if (!transparent) {
+    sheetCtx.fillStyle = backgroundColor;
+    sheetCtx.fillRect(0, 0, sheetCanvas.width, sheetCanvas.height);
+  }
+
+  for (let i = 0; i < playable.length; i++) {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const frameCanvas = await renderFrameFullRes(playable[i], fWidth, fHeight, transparent, backgroundColor);
+    
+    sheetCtx.drawImage(
+      frameCanvas,
+      col * fWidth,
+      row * fHeight,
+      fWidth,
+      fHeight
+    );
+  }
+
+  return {
+    url: sheetCanvas.toDataURL('image/png'),
+    cols,
+    rows,
+    frameCount,
+    frameWidth: fWidth,
+    frameHeight: fHeight
+  };
+};
+
+/** Trigger a browser file download */
 const download = (data: Uint8Array | Blob, filename: string, mime: string) => {
-  const blob = data instanceof Blob ? data : new Blob([data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer], { type: mime });
+  const blob =
+    data instanceof Blob
+      ? data
+      : new Blob(
+          [data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer],
+          { type: mime }
+        );
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -57,138 +161,99 @@ const download = (data: Uint8Array | Blob, filename: string, mime: string) => {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 };
 
-// ─── Animated GIF ─────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// GIF export
+// ---------------------------------------------------------------------------
 
 export const exportAsGif = async (opts: ExportOptions): Promise<void> => {
   const { frames, fps, width, height, transparent } = opts;
-  const playable = frames.filter(f => f.thumbnail);
+  const playable = frames.filter((f) => f.fabricData || f.thumbnail);
   if (!playable.length) throw new Error('No frames to export');
 
-  const delay = Math.round(100 / fps) * 10; // GIF delay is in 1/100 s units → ms
-
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+  const delay = Math.round(100 / fps) * 10; // GIF delay in 1/100s units
 
   const gif = GIFEncoder();
 
   for (const frame of playable) {
-    await paintFrame(ctx, frame, width, height, transparent);
+    const canvas = await renderFrameFullRes(frame, width, height, transparent, opts.backgroundColor);
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
     const imageData = ctx.getImageData(0, 0, width, height);
     const palette = quantize(imageData.data, 256, { format: 'rgba4444' });
     const index = applyPalette(imageData.data, palette);
 
-    if (transparent) {
-      // Find the most-transparent colour index to treat as transparent
-      gif.writeFrame(index, width, height, {
-        palette,
-        delay,
-        repeat: 0,
-        transparent: true,
-        transparentIndex: 0,
-      });
-    } else {
-      gif.writeFrame(index, width, height, { palette, delay, repeat: 0 });
-    }
+    gif.writeFrame(index, width, height, {
+      palette,
+      delay,
+      repeat: 0,
+      transparent,
+      ...(transparent ? { transparentIndex: 0 } : {}),
+    });
   }
 
   gif.finish();
   download(gif.bytes(), 'animation.gif', 'image/gif');
 };
 
-// ─── WebM (device export) ─────────────────────────────────────────────────────
-
-export const exportAsWebM = async (opts: ExportOptions): Promise<void> => {
-  const { frames, fps, width, height, transparent } = opts;
-  const playable = frames.filter(f => f.thumbnail);
-  if (!playable.length) throw new Error('No frames to export');
-
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d')!;
-
-  const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-    ? 'video/webm;codecs=vp9'
-    : 'video/webm';
-
-  const stream = canvas.captureStream(fps);
-  const recorder = new MediaRecorder(stream, { mimeType });
-  const chunks: Blob[] = [];
-
-  recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-
-  return new Promise((resolve, reject) => {
-    recorder.onstop = () => {
-      const blob = new Blob(chunks, { type: mimeType });
-      download(blob, 'animation.webm', mimeType);
-      resolve();
-    };
-    recorder.onerror = reject;
-    recorder.start();
-
-    const msPerFrame = 1000 / fps;
-    let i = 0;
-
-    const next = async () => {
-      if (i >= playable.length) {
-        recorder.stop();
-        return;
-      }
-      await paintFrame(ctx, playable[i], width, height, transparent);
-      i++;
-      setTimeout(next, msPerFrame);
-    };
-
-    next();
-  });
-};
-
-// ─── MP4 via FFmpeg WASM (fully client-side, no server) ───────────────────────
+// ---------------------------------------------------------------------------
+// MP4 export — native VideoEncoder + mp4-muxer
+// Works in Brave, Chrome, Edge (Chromium 94+). No downloads, no WASM.
+// ---------------------------------------------------------------------------
 
 export interface MP4ExportOptions extends ExportOptions {
-  onFFmpegProgress?: (ratio: number) => void;
+  onProgress?: (ratio: number) => void;
 }
 
 export const exportAsMP4 = async (opts: MP4ExportOptions): Promise<void> => {
-  const { frames, fps, width, height, transparent, onFFmpegProgress } = opts;
-  const playable = frames.filter(f => f.thumbnail);
+  const { frames, fps, width, height, transparent, onProgress } = opts;
+  const playable = frames.filter((f) => f.fabricData || f.thumbnail);
   if (!playable.length) throw new Error('No frames to export');
 
-  // Dynamic import so FFmpeg is only bundled when needed
-  const { getFFmpeg, fetchFile } = await import('./ffmpegLoader');
-  const ff = await getFFmpeg(onFFmpegProgress);
+  // H.264 requires even dimensions
+  const encWidth  = width  % 2 === 0 ? width  : width  + 1;
+  const encHeight = height % 2 === 0 ? height : height + 1;
 
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d')!;
+  const muxer = new Muxer({
+    target: new ArrayBufferTarget(),
+    video: { codec: 'avc', width: encWidth, height: encHeight },
+    fastStart: 'in-memory',
+  });
 
-  // Write each frame as a PNG into the FFmpeg virtual FS
+  const encoder = new VideoEncoder({
+    output: (chunk, meta) => muxer.addVideoChunk(chunk, meta ?? {}),
+    error: (e) => { throw e; },
+  });
+
+  encoder.configure({
+    codec: 'avc1.640028',    // H.264 High Profile Level 4.0 — max quality
+    width: encWidth,
+    height: encHeight,
+    bitrate: 8_000_000,      // 8 Mbps — crisp even for pixel art
+    framerate: fps,
+    latencyMode: 'quality',
+  });
+
+  const usPerFrame = Math.round(1_000_000 / fps);
+
   for (let i = 0; i < playable.length; i++) {
-    await paintFrame(ctx, playable[i], width, height, transparent);
-    const blob = await new Promise<Blob>((res) => canvas.toBlob(b => res(b!), 'image/png'));
-    const data = new Uint8Array(await blob.arrayBuffer());
-    await ff.writeFile(`frame${String(i).padStart(4, '0')}.png`, data);
+    onProgress?.(i / playable.length);
+
+    const frameCanvas = await renderFrameFullRes(playable[i], encWidth, encHeight, transparent, opts.backgroundColor);
+    const bitmap = await createImageBitmap(frameCanvas);
+
+    const videoFrame = new VideoFrame(bitmap, {
+      timestamp: i * usPerFrame,
+      duration: usPerFrame,
+    });
+
+    encoder.encode(videoFrame, { keyFrame: i % 30 === 0 });
+    videoFrame.close();
+    bitmap.close();
   }
 
-  // Encode frames → MP4 using H.264
-  await ff.exec([
-    '-framerate', String(fps),
-    '-i', 'frame%04d.png',
-    '-c:v', 'libx264',
-    '-pix_fmt', 'yuv420p',
-    '-movflags', '+faststart',
-    'output.mp4',
-  ]);
+  await encoder.flush();
+  muxer.finalize();
+  onProgress?.(1);
 
-  const output = await ff.readFile('output.mp4');
-  download(output as Uint8Array, 'animation.mp4', 'video/mp4');
-
-  // Clean up virtual FS
-  for (let i = 0; i < playable.length; i++) {
-    await ff.deleteFile(`frame${String(i).padStart(4, '0')}.png`).catch(() => {});
-  }
-  await ff.deleteFile('output.mp4').catch(() => {});
+  const { buffer } = muxer.target;
+  download(new Uint8Array(buffer), 'animation.mp4', 'video/mp4');
 };

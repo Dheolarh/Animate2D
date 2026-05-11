@@ -88,7 +88,12 @@ const SpriteEditorContent: React.FC<SpriteEditorProps> = ({
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden min-h-0">
         <div className="flex-1 flex overflow-hidden min-h-0">
-          <SettingsPanel onSave={handleSave} onClose={onClose} />
+          <SettingsPanel 
+            project={project} 
+            onProjectUpdate={onProjectUpdate} 
+            onSave={handleSave} 
+            onClose={onClose} 
+          />
           <DrawingToolbar />
           <FabricDrawingCanvas />
           <ImageGallery />

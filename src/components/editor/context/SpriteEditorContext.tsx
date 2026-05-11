@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode, useEffect, useRef } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useRef, useCallback } from 'react';
 import * as fabric from 'fabric';
 
 import type {
@@ -141,6 +141,28 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
     nudgeSelection,
   } = canvasSelection;
 
+  /**
+   * Wrap deleteSelection with an explicit forced save.
+   * The native Fabric `object:removed` event triggers a debounced save, but that
+   * debounce can be cancelled if a tool-state React effect re-runs during the same
+   * tick (e.g. wasAutoSwitched → setActiveTool → effect cleanup clears the timer).
+   * Calling updateFrameData directly here guarantees the thumbnail always refreshes.
+   */
+  const deleteSelectionWithSave = useCallback(() => {
+    canvasSelection.deleteSelection();
+    const fc = canvasSelection.fabricCanvas;
+    const fid = frameManager.currentFrameId;
+    if (!fc || !fid) return;
+    // Use a short delay so Fabric's internal cleanup (discard active object, re-render)
+    // finishes before we capture the snapshot.
+    setTimeout(() => {
+      fc.renderAll();
+      const json = (fc as any).toJSON(['erasable']);
+      const thumbnail = fc.toDataURL({ format: 'png', quality: 0.8, multiplier: 0.2 });
+      frameManager.updateFrameData(fid, json, thumbnail);
+    }, 50);
+  }, [canvasSelection, frameManager]);
+
   const toolState = useToolState(fabricCanvas);
 
   // Stable refs so the keydown handler NEVER goes stale without re-registering
@@ -155,7 +177,7 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
   useEffect(() => { undoRef.current = frameManager.undo; }, [frameManager.undo]);
   useEffect(() => { redoRef.current = frameManager.redo; }, [frameManager.redo]);
   useEffect(() => { hasSelectionRef.current = hasSelection; }, [hasSelection]);
-  useEffect(() => { deleteSelectionRef.current = deleteSelection; }, [deleteSelection]);
+  useEffect(() => { deleteSelectionRef.current = deleteSelectionWithSave; }, [deleteSelectionWithSave]);
   useEffect(() => { duplicateSelectionRef.current = duplicateSelection; }, [duplicateSelection]);
   useEffect(() => { toggleLockSelectionRef.current = toggleLockSelection; }, [toggleLockSelection]);
   useEffect(() => { setActiveToolRef.current = toolState.setActiveTool; }, [toolState.setActiveTool]);
@@ -272,8 +294,9 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
     changeTextCharSpacing: toolState.changeTextCharSpacing,
     changeShapeFillMode: toolState.changeShapeFillMode,
 
-    // Selection
-    ...canvasSelection
+    // Selection — override deleteSelection with the save-aware version
+    ...canvasSelection,
+    deleteSelection: deleteSelectionWithSave,
   };
 
   // We will patch useCanvasSelection using useEffect here, or better, we patch it inside the component.

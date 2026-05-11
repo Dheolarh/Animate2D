@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Save, X, Play, ChevronDown, Download, Image as ImageIcon, Loader2, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Save, X, Play, ChevronDown, Download, Image as ImageIcon, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
@@ -11,45 +11,32 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import AnimationSettings from './AnimationSettings';
 import CanvasSettings from './CanvasSettings';
 import AnimationPreview from '../preview/AnimationPreview';
 import { useSpriteEditor } from '../context/SpriteEditorContext';
-import { exportAsGif, exportAsWebM, exportAsMP4 } from '../utils/exportUtils';
-import { warmupFFmpeg } from '../utils/ffmpegLoader';
+import { exportAsMP4, exportAsSpriteSheet } from '../utils/exportUtils';
+import type { Project, SpriteSheetAsset } from '@/types/animation';
 import { toast } from 'sonner';
 
 interface SettingsPanelProps {
+  project: Project;
+  onProjectUpdate: (project: Project) => void;
   onSave: () => void;
   onClose: () => void;
 }
 
-const SettingsPanel: React.FC<SettingsPanelProps> = ({ onSave, onClose }) => {
+const SettingsPanel: React.FC<SettingsPanelProps> = ({ project, onProjectUpdate, onSave, onClose }) => {
   const { frames, animationSettings, canvasState } = useSpriteEditor();
   const [showPreview, setShowPreview] = useState(false);
   const [transparentBackground, setTransparentBackground] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [ffmpegReady, setFfmpegReady] = useState(false);
-  const [ffmpegProgress, setFfmpegProgress] = useState(0); // 0-1 loading progress
-
-  // Start downloading FFmpeg WASM in the background as soon as the panel opens.
-  // By the time the user clicks "Export MP4" it will already be cached.
-  useEffect(() => {
-    let cancelled = false;
-
-    warmupFFmpeg(); // fire-and-forget background download
-
-    // Track progress for the MP4 button label
-    import('../utils/ffmpegLoader').then(({ getFFmpeg }) => {
-      getFFmpeg((ratio) => {
-        if (!cancelled) setFfmpegProgress(ratio);
-      })
-        .then(() => { if (!cancelled) setFfmpegReady(true); })
-        .catch(() => {}); // silently ignore — user can retry via export click
-    });
-
-    return () => { cancelled = true; };
-  }, []);
+  const [encodeProgress, setEncodeProgress] = useState(0);
 
   const exportOpts = {
     frames,
@@ -57,6 +44,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onSave, onClose }) => {
     width: canvasState.width,
     height: canvasState.height,
     transparent: transparentBackground,
+    backgroundColor: canvasState.backgroundColor || '#ffffff',
   };
 
   const runExport = async (label: string, fn: () => Promise<void>) => {
@@ -77,11 +65,47 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onSave, onClose }) => {
     }
   };
 
-  const mp4Label = ffmpegReady
-    ? 'Export as .mp4'
-    : ffmpegProgress > 0
-      ? `Preparing… ${Math.round(ffmpegProgress * 100)}%`
-      : 'Export as .mp4 (loading…)';
+  const handleBakeToSpriteSheet = async () => {
+    if (frames.filter(f => f.thumbnail).length === 0) {
+      toast.error('No frames to bake. Draw something first!');
+      return;
+    }
+    
+    setIsExporting(true);
+    const id = toast.loading("Baking sprite sheet...");
+    try {
+      const sheet = await exportAsSpriteSheet(exportOpts);
+      
+      const newAsset: SpriteSheetAsset = {
+        id: `sheet_${Date.now()}`,
+        name: `${project.name} Baked`,
+        type: 'spritesheet',
+        url: sheet.url,
+        cols: sheet.cols,
+        rows: sheet.rows,
+        frameCount: sheet.frameCount,
+        frameWidth: sheet.frameWidth,
+        frameHeight: sheet.frameHeight,
+        fps: project.settings.fps,
+        createdAt: Date.now()
+      };
+
+      const updatedProject = {
+        ...project,
+        assets: [...project.assets, newAsset]
+      };
+      
+      onProjectUpdate(updatedProject);
+      toast.success("Added to Sprite Library!", { id });
+    } catch (err: any) {
+      console.error(err);
+      toast.error(`Baking failed: ${err.message}`, { id });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const mp4Label = 'Export as .mp4';
 
   return (
     <div className="w-60 border-r bg-card flex flex-col h-full overflow-hidden shrink-0 shadow-sm z-10 relative">
@@ -98,10 +122,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onSave, onClose }) => {
             <span>Export</span>
           </div>
           <div className="flex items-center justify-between bg-muted/30 p-2 rounded-lg border border-transparent hover:border-border/50 transition-colors">
-            <Label htmlFor="transparent-bg" className="text-xs text-muted-foreground cursor-pointer flex items-center gap-2">
-              <ImageIcon className="w-3.5 h-3.5" />
-              Transparent bg
-            </Label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Label htmlFor="transparent-bg" className="text-xs text-muted-foreground cursor-pointer flex items-center gap-2">
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  Transparent BG
+                </Label>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p className="text-[10px]">Export frames with transparent background</p>
+              </TooltipContent>
+            </Tooltip>
             <Switch
               id="transparent-bg"
               checked={transparentBackground}
@@ -110,21 +141,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onSave, onClose }) => {
             />
           </div>
 
-          {/* FFmpeg status pill */}
-          <div className="flex items-center gap-1.5 px-1">
-            {ffmpegReady ? (
-              <CheckCircle2 className="w-3 h-3 text-green-500 flex-shrink-0" />
-            ) : (
-              <Loader2 className="w-3 h-3 text-muted-foreground animate-spin flex-shrink-0" />
-            )}
-            <span className="text-[10px] text-muted-foreground">
-              {ffmpegReady
-                ? 'MP4 encoder ready'
-                : ffmpegProgress > 0
-                  ? `Downloading MP4 encoder… ${Math.round(ffmpegProgress * 100)}%`
-                  : 'Downloading MP4 encoder in background'}
-            </span>
-          </div>
+          {/* FFmpeg status removed — MP4 now uses native VideoEncoder, no download needed */}
         </div>
       </div>
       
@@ -157,54 +174,52 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onSave, onClose }) => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
-              {/* GIF — animated clip for scenes */}
-              <DropdownMenuItem
-                onClick={() => runExport('GIF', () => exportAsGif(exportOpts))}
-                className="cursor-pointer gap-2 p-2"
-                disabled={isExporting}
-              >
-                <Save className="w-4 h-4 text-muted-foreground" />
-                <div className="flex flex-col">
-                  <span className="font-medium text-xs">Save as .gif</span>
-                  <span className="text-[10px] text-muted-foreground">Animated clip for scenes</span>
-                </div>
-              </DropdownMenuItem>
+
+              {/* MP4 — native VideoEncoder, no download required */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuItem
+                    onClick={() => runExport('MP4', () => exportAsMP4({
+                      ...exportOpts,
+                      onProgress: (r) => {
+                        setEncodeProgress(r);
+                        toast.loading(`Encoding MP4… ${Math.round(r * 100)}%`, { id: 'export' });
+                      },
+                    }))}
+                    className="cursor-pointer gap-2 p-2"
+                    disabled={isExporting}
+                  >
+                    <Download className="w-4 h-4 text-muted-foreground" />
+                    <div className="flex flex-col">
+                      <span className="font-medium text-xs">Export as .mp4</span>
+                    </div>
+                  </DropdownMenuItem>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p className="text-[10px]">Universal video format (high quality, small size)</p>
+                </TooltipContent>
+              </Tooltip>
 
               <DropdownMenuSeparator />
 
-              {/* WebM — quick device export */}
-              <DropdownMenuItem
-                onClick={() => runExport('WebM', () => exportAsWebM(exportOpts))}
-                className="cursor-pointer gap-2 p-2"
-                disabled={isExporting}
-              >
-                <Download className="w-4 h-4 text-muted-foreground" />
-                <div className="flex flex-col">
-                  <span className="font-medium text-xs">Export as .webm</span>
-                  <span className="text-[10px] text-muted-foreground">Fast — Chrome/Firefox/Edge</span>
-                </div>
-              </DropdownMenuItem>
-
-              {/* MP4 — via FFmpeg WASM */}
-              <DropdownMenuItem
-                onClick={() => runExport('MP4', () => exportAsMP4({
-                  ...exportOpts,
-                  onFFmpegProgress: (r) => {
-                    toast.loading(`Encoding MP4… ${Math.round(r * 100)}%`, { id: 'export' });
-                  },
-                }))}
-                className="cursor-pointer gap-2 p-2"
-                disabled={isExporting}
-              >
-                {ffmpegReady
-                  ? <Download className="w-4 h-4 text-muted-foreground" />
-                  : <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
-                }
-                <div className="flex flex-col">
-                  <span className="font-medium text-xs">{mp4Label}</span>
-                  <span className="text-[10px] text-muted-foreground">Universal — plays everywhere</span>
-                </div>
-              </DropdownMenuItem>
+              {/* Sprite Sheet — optimized for scenes */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuItem
+                    onClick={handleBakeToSpriteSheet}
+                    className="cursor-pointer gap-2 p-2"
+                    disabled={isExporting}
+                  >
+                    <Save className="w-4 h-4 text-muted-foreground" />
+                    <div className="flex flex-col">
+                      <span className="font-medium text-xs">Save as sprite</span>
+                    </div>
+                  </DropdownMenuItem>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p className="text-[10px]">Turn into an optimized asset for your scenes</p>
+                </TooltipContent>
+              </Tooltip>
             </DropdownMenuContent>
           </DropdownMenu>
           

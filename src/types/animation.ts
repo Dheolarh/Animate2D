@@ -2,7 +2,7 @@ export type EditorMode = 'sprite' | 'scene' | 'preview' | 'export';
 
 export type PlaybackMode = 'loop' | 'once' | 'pingpong' | 'hold';
 
-export type AssetType = 'sprite' | 'animation' | 'image' | 'gif' | 'audio' | 'effect';
+export type AssetType = 'sprite' | 'animation' | 'image' | 'gif' | 'audio' | 'effect' | 'spritesheet';
 
 export type TrackType = 'position' | 'rotation' | 'scale' | 'opacity' | 'visibility' | 'animation' | 'audio' | 'effect';
 
@@ -106,7 +106,21 @@ export interface AudioAsset {
   createdAt: number;
 }
 
-export type Asset = SpriteAsset | AnimationAsset | ImageAsset | AudioAsset;
+export interface SpriteSheetAsset {
+  id: string;
+  name: string;
+  type: 'spritesheet';
+  url: string;
+  cols: number;
+  rows: number;
+  frameCount: number;
+  frameWidth: number;
+  frameHeight: number;
+  fps: number;
+  createdAt: number;
+}
+
+export type Asset = SpriteAsset | AnimationAsset | ImageAsset | AudioAsset | SpriteSheetAsset;
 
 export interface Transform {
   x: number;

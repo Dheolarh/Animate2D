@@ -28,7 +28,9 @@ const AssetLibrary: React.FC<AssetLibraryProps> = ({
     const newObject: SceneObject = {
       id: `obj_${Date.now()}`,
       name: asset.name,
-      type: asset.type === 'sprite' ? 'sprite' : asset.type === 'animation' ? 'animation' : 'image',
+      type: asset.type === 'sprite' ? 'sprite' : 
+            asset.type === 'animation' ? 'animation' : 
+            asset.type === 'spritesheet' ? 'animation' : 'image',
       assetId: asset.id,
       transform: {
         x: project.scene.width / 2,
@@ -116,20 +118,24 @@ const AssetLibrary: React.FC<AssetLibraryProps> = ({
           </TabsContent>
 
           <TabsContent value="animations" className="p-3 m-0">
-            {assets.filter(a => a.type === 'animation').length === 0 ? (
+            {assets.filter(a => a.type === 'animation' || a.type === 'spritesheet').length === 0 ? (
               <div className="text-sm text-muted-foreground text-center py-8">
                 No animations yet. Create one in Sprite Editor mode.
               </div>
             ) : (
               <div className="grid grid-cols-6 gap-2">
-                {assets.filter(a => a.type === 'animation').map(asset => (
+                {assets.filter(a => a.type === 'animation' || a.type === 'spritesheet').map(asset => (
                   <Card
                     key={asset.id}
                     className="p-2 cursor-pointer hover:border-primary transition-colors"
                     onClick={() => handleAddAssetToScene(asset)}
                   >
                     <div className="aspect-square bg-muted rounded flex items-center justify-center mb-1">
-                      <Film className="w-6 h-6 text-muted-foreground" />
+                      {asset.type === 'spritesheet' ? (
+                        <Sparkles className="w-6 h-6 text-primary" />
+                      ) : (
+                        <Film className="w-6 h-6 text-muted-foreground" />
+                      )}
                     </div>
                     <div className="text-xs truncate text-center">{asset.name}</div>
                   </Card>

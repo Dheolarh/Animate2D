@@ -3,7 +3,7 @@ import type { ToolType } from '../../types/spriteEditor';
 import type * as fabric from 'fabric';
 
 export const useToolState = (fabricCanvas: fabric.Canvas | null) => {
-  const [activeTool, setActiveTool] = useState<ToolType>('brush');
+  const [activeTool, setActiveTool] = useState<ToolType>('select');
   const [brushColor, setBrushColor] = useState<string>('#111827');
   const [brushSize, setBrushSize] = useState<number>(5);
   const [textSize, setTextSize] = useState<number>(24);

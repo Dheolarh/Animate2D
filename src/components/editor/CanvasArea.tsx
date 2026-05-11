@@ -82,6 +82,26 @@ const CanvasArea: React.FC<CanvasAreaProps> = ({
         const img = new Image();
         img.src = frame.imageData;
         ctx.drawImage(img, -asset.width / 2, -asset.height / 2, asset.width, asset.height);
+      } else if (asset.type === 'spritesheet') {
+        const frameIndex = Math.floor(playheadTime * asset.fps) % asset.frameCount;
+        const col = frameIndex % asset.cols;
+        const row = Math.floor(frameIndex / asset.cols);
+        
+        const img = new Image();
+        img.src = asset.url;
+        
+        // Draw only the specific frame from the sheet
+        ctx.drawImage(
+          img,
+          col * asset.frameWidth,
+          row * asset.frameHeight,
+          asset.frameWidth,
+          asset.frameHeight,
+          -asset.frameWidth / 2,
+          -asset.frameHeight / 2,
+          asset.frameWidth,
+          asset.frameHeight
+        );
       } else if (asset.type === 'sprite') {
         const img = new Image();
         img.src = asset.frame.imageData;
