@@ -5,7 +5,7 @@ import { useSpriteEditor, type UploadedImage } from '../context/SpriteEditorCont
 import { toast } from 'sonner';
 
 const ImageGallery: React.FC = () => {
-  const { uploadedImages, setUploadedImages, setDraggingImageUrl } = useSpriteEditor();
+  const { uploadedImages, setUploadedImages, addUploadedImage, setDraggingImageUrl } = useSpriteEditor();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,7 +40,8 @@ const ImageGallery: React.FC = () => {
             height: img.height
           };
 
-          setUploadedImages(prev => [...prev, newImage]);
+          // addUploadedImage converts ObjectURL → base64 then saves to localStorage
+          addUploadedImage(newImage);
           toast.success(`${file.name} loaded`);
         };
         img.onerror = () => {

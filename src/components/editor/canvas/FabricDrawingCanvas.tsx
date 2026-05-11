@@ -261,13 +261,14 @@ const FabricDrawingCanvas: React.FC = () => {
         }
       }
       
-      // Fire object:modified so the thumbnail captures the new stroke immediately
-      canvas.fire('object:modified');
+      // debounceSave handles the thumbnail — no need to also fire object:modified
       debounceSave();
     };
 
     const handleObjectAdded = (e: any) => {
       setupObjectSelection(e.target);
+      // Skip auto-save when objects are being loaded from saved JSON (not user-added)
+      if (e.target?._fromJSON) return;
       debounceSave();
     };
 
@@ -460,6 +461,7 @@ const FabricDrawingCanvas: React.FC = () => {
               setupObjectSelection(img);
               canvas.add(img);
               canvas.setActiveObject(img);
+              setActiveTool('select'); // auto-switch to select so user can move/resize immediately
               canvas.requestRenderAll();
               
               // Force thumbnail update after image drop

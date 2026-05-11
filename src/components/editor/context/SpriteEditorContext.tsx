@@ -67,6 +67,7 @@ interface SpriteEditorContextType {
   // Image gallery state
   uploadedImages: UploadedImage[];
   setUploadedImages: React.Dispatch<React.SetStateAction<UploadedImage[]>>;
+  addUploadedImage: (raw: UploadedImage) => Promise<UploadedImage>;
   selectedImage: FrameImage | null;
   setSelectedImage: (image: FrameImage | null) => void;
   selectedText: FrameText | null;

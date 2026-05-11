@@ -54,11 +54,17 @@ export const useFrameManager = () => {
 
   // Persist frames on change
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(frames));
-    } catch (e) {
-      console.error("Failed to save frames to localStorage", e);
-    }
+    setSaveStatus('saving');
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(frames));
+        setSaveStatus('saved');
+      } catch (e) {
+        console.error("Failed to save frames to localStorage", e);
+        setSaveStatus('unsaved');
+      }
+    }, 500); // Small delay to let the UI show "Saving..." and debounce heavy JSON stringification
+    return () => clearTimeout(timer);
   }, [frames]);
 
   // Persist current frame ID on change
@@ -193,7 +199,7 @@ export const useFrameManager = () => {
             setFuture([]);
             preDrawSnapshotRef.current = null;
           }
-        }, 800);
+        }, 300);
       }
 
       return prev.map(f =>
