@@ -14,7 +14,7 @@ const AnimationSettings: React.FC = () => {
       
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <Label htmlFor="asset-name" className="text-xs text-muted-foreground flex items-center gap-1.5 w-16 shrink-0">
+          <Label htmlFor="asset-name" className="text-[10px] uppercase font-bold text-muted-foreground w-10">
             Name
           </Label>
           <Input
@@ -26,7 +26,7 @@ const AnimationSettings: React.FC = () => {
         </div>
 
         <div className="flex items-center justify-between gap-2">
-          <Label htmlFor="fps" className="text-xs text-muted-foreground flex items-center gap-1.5 w-16 shrink-0">
+          <Label htmlFor="fps" className="text-[10px] uppercase font-bold text-muted-foreground w-10">
             FPS
           </Label>
           <Input
@@ -41,35 +41,33 @@ const AnimationSettings: React.FC = () => {
         </div>
 
         <div className="flex items-center justify-between gap-2 pt-1">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1.5 w-16 shrink-0">
+          <Label className="text-[10px] uppercase font-bold text-muted-foreground w-10">
             Size
           </Label>
-          <div className="flex items-center gap-1 w-full">
-            <div className="relative w-full">
-              <span className="absolute left-1.5 top-1.5 text-[10px] text-muted-foreground font-mono">W</span>
+          <div className="flex items-center gap-1.5 flex-1">
+            <div className="relative flex-1">
+              <span className="absolute left-1 top-1.5 text-[8px] text-muted-foreground font-mono font-bold opacity-50">W</span>
               <Input
                 id="frame-width"
                 type="number"
-                min={64}
-                max={2048}
-                step={64}
+                min={1}
+                max={4096}
                 value={canvasState.width}
                 onChange={(e) => setCanvasSize(Number(e.target.value), canvasState.height)}
-                className="h-7 text-xs pl-5 pr-1 bg-muted/50 border-transparent hover:border-border focus:bg-background transition-colors font-mono"
+                className="h-7 text-xs pl-4 pr-1 bg-muted/50 border-transparent hover:border-border focus:bg-background transition-colors font-mono"
               />
             </div>
-            <span className="text-muted-foreground text-xs">×</span>
-            <div className="relative w-full">
-              <span className="absolute left-1.5 top-1.5 text-[10px] text-muted-foreground font-mono">H</span>
+            <span className="text-muted-foreground text-[10px] opacity-30">×</span>
+            <div className="relative flex-1">
+              <span className="absolute left-1 top-1.5 text-[8px] text-muted-foreground font-mono font-bold opacity-50">H</span>
               <Input
                 id="frame-height"
                 type="number"
-                min={64}
-                max={2048}
-                step={64}
+                min={1}
+                max={4096}
                 value={canvasState.height}
                 onChange={(e) => setCanvasSize(canvasState.width, Number(e.target.value))}
-                className="h-7 text-xs pl-5 pr-1 bg-muted/50 border-transparent hover:border-border focus:bg-background transition-colors font-mono"
+                className="h-7 text-xs pl-4 pr-1 bg-muted/50 border-transparent hover:border-border focus:bg-background transition-colors font-mono"
               />
             </div>
           </div>

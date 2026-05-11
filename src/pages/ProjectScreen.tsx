@@ -120,75 +120,76 @@ const ProjectScreen: React.FC = () => {
                 Create New Project
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Project</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="project-name">Project Name</Label>
-                  <Input
-                    id="project-name"
-                    placeholder="My Animation"
-                    value={newProjectName}
-                    onChange={(e) => setNewProjectName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleCreateProject();
-                        setIsCreateDialogOpen(false);
-                      }
-                    }}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="canvas-width">Width (px)</Label>
-                    <Input
-                      id="canvas-width"
-                      type="number"
-                      min="1"
-                      max="4096"
-                      value={canvasWidth}
-                      onChange={(e) => setCanvasWidth(parseInt(e.target.value) || 0)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleCreateProject();
-                          setIsCreateDialogOpen(false);
-                        }
-                      }}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="canvas-height">Height (px)</Label>
-                    <Input
-                      id="canvas-height"
-                      type="number"
-                      min="1"
-                      max="4096"
-                      value={canvasHeight}
-                      onChange={(e) => setCanvasHeight(parseInt(e.target.value) || 0)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleCreateProject();
-                          setIsCreateDialogOpen(false);
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
+            <DialogContent className="overflow-hidden p-0">
+              {/* Notebook design background */}
+              <div className="absolute inset-0 pointer-events-none z-0">
+                <div className="absolute inset-0 notebook-lines opacity-20" />
+                <div className="absolute left-[40px] top-0 bottom-0 w-[2px] bg-red-400 opacity-40" />
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={() => {
-                  handleCreateProject();
-                  setIsCreateDialogOpen(false);
-                  setNewProjectName('');
-                }}>
-                  Create Project
-                </Button>
-              </DialogFooter>
+              
+              <div className="relative z-10 pl-16 pr-8 py-8">
+                <DialogHeader className="mb-6">
+                  <DialogTitle className="font-bold text-2xl tracking-tight" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+                    CREATE NEW PROJECT
+                  </DialogTitle>
+                </DialogHeader>
+                
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="project-name" className="font-mono text-xs uppercase opacity-70 font-bold">Project Name</Label>
+                    <Input
+                      id="project-name"
+                      placeholder="Untitled Animation"
+                      className="font-mono bg-white/80 backdrop-blur-sm border-2 focus-visible:ring-0 focus-visible:border-primary h-11"
+                      value={newProjectName}
+                      onChange={(e) => setNewProjectName(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="canvas-width" className="font-mono text-xs uppercase opacity-70 font-bold">Width (px)</Label>
+                      <Input
+                        id="canvas-width"
+                        type="number"
+                        min="1"
+                        max="4096"
+                        className="font-mono bg-white/80 backdrop-blur-sm border-2 h-11"
+                        value={canvasWidth}
+                        onChange={(e) => setCanvasWidth(parseInt(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="canvas-height" className="font-mono text-xs uppercase opacity-70 font-bold">Height (px)</Label>
+                      <Input
+                        id="canvas-height"
+                        type="number"
+                        min="1"
+                        max="4096"
+                        className="font-mono bg-white/80 backdrop-blur-sm border-2 h-11"
+                        value={canvasHeight}
+                        onChange={(e) => setCanvasHeight(parseInt(e.target.value) || 0)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <DialogFooter className="mt-8 gap-3">
+                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="font-mono uppercase text-xs">
+                    Cancel
+                  </Button>
+                  <Button 
+                    className="font-mono uppercase text-xs px-6"
+                    onClick={() => {
+                      handleCreateProject();
+                      setIsCreateDialogOpen(false);
+                      setNewProjectName('');
+                    }}
+                  >
+                    Create Project
+                  </Button>
+                </DialogFooter>
+              </div>
             </DialogContent>
           </Dialog>
         </div>
@@ -254,8 +255,11 @@ const ProjectScreen: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="aspect-video bg-white rounded-md mb-2 flex items-center justify-center border overflow-hidden relative">
-                    <div className="absolute inset-0 notebook-lines opacity-5" />
+                  <div 
+                    className="aspect-video rounded-md mb-2 flex items-center justify-center border overflow-hidden relative"
+                    style={{ backgroundColor: project.settings.backgroundColor || '#ffffff' }}
+                  >
+                    <div className="absolute inset-0 notebook-lines opacity-5 pointer-events-none" />
                     {project.thumbnail ? (
                       <img 
                         src={project.thumbnail} 
@@ -263,9 +267,9 @@ const ProjectScreen: React.FC = () => {
                         className="w-full h-full object-contain relative z-10"
                       />
                     ) : (
-                      <div className="flex flex-col items-center gap-2 opacity-20">
+                      <div className="flex flex-col items-center justify-center gap-2 opacity-20 relative z-10">
                         <FolderOpen className="w-8 h-8" />
-                        <span className="text-[10px] font-mono uppercase">Empty Canvas</span>
+                        <span className="text-[10px] font-mono uppercase font-bold">Empty Canvas</span>
                       </div>
                     )}
                   </div>

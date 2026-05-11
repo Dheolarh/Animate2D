@@ -89,12 +89,12 @@ const CanvasSettings: React.FC = () => {
       <div className="space-y-3">
         {/* Color Picker & Input Row */}
         <div className="flex items-center justify-between gap-2">
-          <Label htmlFor="bg-color" className="text-xs text-muted-foreground w-16 shrink-0">
+          <Label htmlFor="bg-color" className="text-[10px] uppercase font-bold text-muted-foreground w-10 shrink-0">
             Color
           </Label>
           <div className="flex items-center gap-1 w-full relative">
             <div 
-              className="w-5 h-5 rounded-md border border-border shrink-0 absolute left-1 top-1 overflow-hidden shadow-inner"
+              className="w-5 h-5 rounded-md border border-border shrink-0 absolute left-1 top-1 overflow-hidden shadow-inner z-10"
               style={{ 
                 backgroundImage: 'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAGElEQVQYV2NkYGAQYKABjAhlVEMDmgZ1AAAbVwA1rT00+QAAAABJRU5ErkJggg==")'
               }}
@@ -112,14 +112,14 @@ const CanvasSettings: React.FC = () => {
               type="text"
               value={activeBgColor}
               onChange={(e) => handleBackgroundColorChange(e.target.value)}
-              className="h-7 text-xs pl-7 pr-10 bg-muted/50 border-transparent hover:border-border focus:bg-background transition-colors font-mono lowercase"
+              className="h-7 text-xs pl-7 pr-7 bg-muted/50 border-transparent hover:border-border focus:bg-background transition-colors font-mono lowercase"
               placeholder="rgba(255, 255, 255, 1)"
             />
             <Button
               variant="ghost"
               size="icon"
               onClick={applyColorToAll}
-              className="h-5 w-5 absolute right-1 top-1 rounded hover:bg-primary/20 hover:text-primary transition-all"
+              className="h-5 w-5 absolute right-1 top-1 rounded hover:bg-primary/20 hover:text-primary transition-all z-10"
               title="Apply to all frames"
             >
               <Globe className="w-3 h-3" />

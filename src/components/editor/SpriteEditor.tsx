@@ -30,21 +30,32 @@ const SpriteEditorContent: React.FC<SpriteEditorProps> = ({
   onPlayPause,
   onStop
 }) => {
-  const { animationSettings, saveStatus, isHydrated, frames } = useSpriteEditor();
+  const { animationSettings, saveStatus, isHydrated, frames, canvasState } = useSpriteEditor();
 
-  // Update project thumbnail with the last frame whenever frames change
+  // Update project thumbnail and settings with the latest frame data
   React.useEffect(() => {
     if (!isHydrated || frames.length === 0) return;
     
     const lastFrame = frames[frames.length - 1];
-    if (lastFrame.thumbnail && lastFrame.thumbnail !== project.thumbnail) {
+    const currentBgColor = lastFrame.backgroundColor || canvasState.backgroundColor || '#ffffff';
+    
+    // Update if thumbnail changed OR if background color changed
+    const needsUpdate = 
+      (lastFrame.thumbnail && lastFrame.thumbnail !== project.thumbnail) ||
+      (currentBgColor !== project.settings.backgroundColor);
+
+    if (needsUpdate) {
       const updatedProject = {
         ...project,
-        thumbnail: lastFrame.thumbnail
+        thumbnail: lastFrame.thumbnail || project.thumbnail,
+        settings: {
+          ...project.settings,
+          backgroundColor: currentBgColor
+        }
       };
       onProjectUpdate(updatedProject);
     }
-  }, [frames, isHydrated, project.thumbnail, onProjectUpdate]);
+  }, [frames, isHydrated, project.thumbnail, project.settings.backgroundColor, canvasState.backgroundColor, onProjectUpdate]);
 
   const handleSave = () => {
     if (!animationSettings.name.trim()) {
