@@ -16,7 +16,10 @@ const FrameTimeline: React.FC = () => {
     reorderFrames,
     onionSkinFrameCount,
     setOnionSkinFrameCount,
-    setFrameOpacity
+    setFrameOpacity,
+    onionSkinOpacity,
+    setOnionSkinOpacity,
+    canvasState
   } = useSpriteEditor();
 
   const dragIndexRef = useRef<number | null>(null);
@@ -63,8 +66,8 @@ const FrameTimeline: React.FC = () => {
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Frames</h3>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 border-r border-border pr-4">
-            <label htmlFor="frameOpacity" className="text-[10px] font-medium text-muted-foreground uppercase cursor-pointer" title="Opacity of the currently selected frame">
-              Opacity:
+            <label htmlFor="frameOpacity" className="text-[10px] font-medium text-muted-foreground uppercase cursor-pointer" title="Opacity of the currently selected frame (affects final export)">
+              Frame Opacity:
             </label>
             <div className="flex items-center gap-1">
               <input 
@@ -74,26 +77,49 @@ const FrameTimeline: React.FC = () => {
                 max="100" 
                 value={currentFrame?.opacity ?? 100}
                 onChange={(e) => currentFrameId && setFrameOpacity(currentFrameId, Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
-                className="w-10 h-6 bg-background border border-border rounded text-xs px-1 text-center font-mono outline-none focus:border-primary"
-                title="Frame Opacity (0-100)"
+                className="w-12 h-6 bg-background border border-border rounded text-xs px-1 text-center font-mono outline-none focus:border-primary"
+                title="Selected Frame Opacity (0-100)"
               />
               <span className="text-[10px] text-muted-foreground">%</span>
             </div>
           </div>
+          
           <div className="flex items-center gap-2 border-r border-border pr-4">
             <label htmlFor="onionSkin" className="text-[10px] font-medium text-muted-foreground uppercase cursor-pointer" title="Number of previous frames to ghost underneath the active canvas">
               Onion Skin:
             </label>
-            <input 
-              id="onionSkin"
-              type="number" 
-              min="0" 
-              max="10" 
-              value={onionSkinFrameCount}
-              onChange={(e) => setOnionSkinFrameCount(Math.max(0, parseInt(e.target.value) || 0))}
-              className="w-10 h-6 bg-background border border-border rounded text-xs px-1 text-center font-mono outline-none focus:border-primary"
-              title="Frames to show (0 to disable)"
-            />
+            <div className="flex items-center gap-1">
+              <input 
+                id="onionSkin"
+                type="number" 
+                min="0" 
+                max="50" 
+                value={onionSkinFrameCount}
+                onChange={(e) => setOnionSkinFrameCount(Math.max(0, parseInt(e.target.value) || 0))}
+                className="w-12 h-6 bg-background border border-border rounded text-xs px-1 text-center font-mono outline-none focus:border-primary"
+                title="Frames to show (0 to disable)"
+              />
+              <span className="text-[10px] text-muted-foreground">F</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 border-r border-border pr-4">
+            <label htmlFor="onionSkinOpacity" className="text-[10px] font-medium text-muted-foreground uppercase cursor-pointer" title="Opacity of the ghosted frames (editor only)">
+              Ghost Opacity:
+            </label>
+            <div className="flex items-center gap-1">
+              <input 
+                id="onionSkinOpacity"
+                type="number" 
+                min="0" 
+                max="100" 
+                value={onionSkinOpacity}
+                onChange={(e) => setOnionSkinOpacity(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                className="w-12 h-6 bg-background border border-border rounded text-xs px-1 text-center font-mono outline-none focus:border-primary"
+                title="Ghosting Opacity (0-100)"
+              />
+              <span className="text-[10px] text-muted-foreground">%</span>
+            </div>
           </div>
           <span className="text-[10px] text-muted-foreground font-mono">
             {frames.length} Frame{frames.length !== 1 ? 's' : ''}
@@ -156,7 +182,8 @@ const FrameTimeline: React.FC = () => {
 
                 {/* Thumbnail */}
                 <div className="w-full h-full flex items-center justify-center p-1" style={{
-                  backgroundImage: 'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAGElEQVQYV2NkYGAQYKABjAhlVEMDmgZ1AAAbVwA1rT00+QAAAABJRU5ErkJggg==")',
+                  backgroundColor: !canvasState.showTransparentFrame ? (frame.backgroundColor || canvasState.backgroundColor || '#ffffff') : 'transparent',
+                  backgroundImage: canvasState.showTransparentFrame ? 'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAGElEQVQYV2NkYGAQYKABjAhlVEMDmgZ1AAAbVwA1rT00+QAAAABJRU5ErkJggg==")' : 'none',
                   backgroundSize: '10px 10px'
                 }}>
                   {frame.thumbnail ? (

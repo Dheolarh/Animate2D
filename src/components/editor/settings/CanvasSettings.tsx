@@ -2,8 +2,9 @@ import React, { useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
-import { SquareDashed } from 'lucide-react';
+import { SquareDashed, Globe } from 'lucide-react';
 import { useSpriteEditor } from '../context/SpriteEditorContext';
+import { Button } from '@/components/ui/button';
 
 // Basic color parser to handle both hex and rgba
 const parseColor = (color: string) => {
@@ -45,13 +46,25 @@ const hexToRgb = (hex: string) => {
 };
 
 const CanvasSettings: React.FC = () => {
-  const { canvasState, setCanvasState } = useSpriteEditor();
+  const { canvasState, setCanvasState, currentFrameId, frames, setFrameBackgroundColor } = useSpriteEditor();
+
+  const currentFrame = frames.find(f => f.id === currentFrameId);
+  const activeBgColor = currentFrame?.backgroundColor || canvasState.backgroundColor || '#ffffff';
 
   const handleBackgroundColorChange = (color: string) => {
-    setCanvasState({ ...canvasState, backgroundColor: color });
+    if (currentFrameId) {
+      setFrameBackgroundColor(currentFrameId, color, false);
+    }
   };
 
-  const parsed = useMemo(() => parseColor(canvasState.backgroundColor || '#ffffff'), [canvasState.backgroundColor]);
+  const applyColorToAll = () => {
+    if (currentFrameId) {
+      setFrameBackgroundColor(currentFrameId, activeBgColor, true);
+      setCanvasState({ ...canvasState, backgroundColor: activeBgColor });
+    }
+  };
+
+  const parsed = useMemo(() => parseColor(activeBgColor), [activeBgColor]);
   const pickerHex = rgbToHex(parsed.r, parsed.g, parsed.b);
   const opacityPercent = Math.round(parsed.a * 100);
 
@@ -86,7 +99,7 @@ const CanvasSettings: React.FC = () => {
                 backgroundImage: 'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAGElEQVQYV2NkYGAQYKABjAhlVEMDmgZ1AAAbVwA1rT00+QAAAABJRU5ErkJggg==")'
               }}
             >
-              <div className="w-full h-full" style={{ backgroundColor: canvasState.backgroundColor || '#ffffff' }} />
+              <div className="w-full h-full" style={{ backgroundColor: activeBgColor }} />
               <input
                 id="bg-color"
                 type="color"
@@ -97,11 +110,20 @@ const CanvasSettings: React.FC = () => {
             </div>
             <Input
               type="text"
-              value={canvasState.backgroundColor || '#ffffff'}
+              value={activeBgColor}
               onChange={(e) => handleBackgroundColorChange(e.target.value)}
-              className="h-7 text-xs pl-7 pr-2 bg-muted/50 border-transparent hover:border-border focus:bg-background transition-colors font-mono lowercase"
+              className="h-7 text-xs pl-7 pr-10 bg-muted/50 border-transparent hover:border-border focus:bg-background transition-colors font-mono lowercase"
               placeholder="rgba(255, 255, 255, 1)"
             />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={applyColorToAll}
+              className="h-5 w-5 absolute right-1 top-1 rounded hover:bg-primary/20 hover:text-primary transition-all"
+              title="Apply to all frames"
+            >
+              <Globe className="w-3 h-3" />
+            </Button>
           </div>
         </div>
 

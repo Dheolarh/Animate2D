@@ -44,10 +44,13 @@ interface SpriteEditorContextType {
   reorderFrames: (fromIndex: number, toIndex: number) => void;
   updateFrameData: (id: string, fabricData: any, thumbnail: string) => void;
   setFrameOpacity: (id: string, opacity: number) => void;
+  setFrameBackgroundColor: (id: string, color: string, applyToAll?: boolean) => void;
 
   // Onion skin settings
   onionSkinFrameCount: number;
   setOnionSkinFrameCount: (count: number) => void;
+  onionSkinOpacity: number;
+  setOnionSkinOpacity: (opacity: number) => void;
 
   // Save status
   saveStatus: 'saved' | 'saving' | 'unsaved';
@@ -283,6 +286,9 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
     ...canvasSettings,
     ...frameManager,
     setFrameOpacity: frameManager.setFrameOpacity,
+    setFrameBackgroundColor: frameManager.setFrameBackgroundColor,
+    onionSkinOpacity: frameManager.onionSkinOpacity,
+    setOnionSkinOpacity: frameManager.setOnionSkinOpacity,
     ...imageGallery,
 
     // Tools

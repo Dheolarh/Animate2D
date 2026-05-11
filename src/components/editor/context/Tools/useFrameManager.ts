@@ -22,6 +22,7 @@ export const useFrameManager = () => {
   const [historyRevision, setHistoryRevision] = useState(0);
 
   const [onionSkinFrameCount, setOnionSkinFrameCount] = useState<number>(5);
+  const [onionSkinOpacity, setOnionSkinOpacity] = useState<number>(40);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
 
   // ── Live refs so undo/redo never have stale closures ───────────────────────
@@ -200,6 +201,12 @@ export const useFrameManager = () => {
     ));
   };
 
+  const setFrameBackgroundColor = (id: string, color: string, applyToAll: boolean = false) => {
+    setFrames(prev => prev.map(f =>
+      (applyToAll || f.id === id) ? { ...f, backgroundColor: color } : f
+    ));
+  };
+
   return {
     frames,
     currentFrameId,
@@ -211,6 +218,7 @@ export const useFrameManager = () => {
     reorderFrames,
     updateFrameData,
     setFrameOpacity,
+    setFrameBackgroundColor,
     undo,
     redo,
     canUndo: past.length > 0,
@@ -218,6 +226,8 @@ export const useFrameManager = () => {
     historyRevision,
     onionSkinFrameCount,
     setOnionSkinFrameCount,
+    onionSkinOpacity,
+    setOnionSkinOpacity,
     saveStatus,
     setSaveStatus,
   };

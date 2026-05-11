@@ -55,13 +55,9 @@ const renderFrameFullRes = async (
     // Force dimensions
     fc.setDimensions({ width, height });
     
-    // If not transparent, ensure we have a solid background.
-    // We manually fill the underlying context to be 100% sure the pixels are there.
+    // Handle Background Color
     if (!transparent) {
-      const ctx = canvas.getContext('2d')!;
-      ctx.fillStyle = defaultBackgroundColor;
-      ctx.fillRect(0, 0, width, height);
-      fc.backgroundColor = defaultBackgroundColor;
+      fc.backgroundColor = frame.backgroundColor || defaultBackgroundColor || '#ffffff';
     } else {
       fc.backgroundColor = 'transparent';
     }
@@ -79,7 +75,7 @@ const renderFrameFullRes = async (
   } else if (frame.thumbnail) {
     const ctx = canvas.getContext('2d')!;
     if (!transparent) {
-      ctx.fillStyle = defaultBackgroundColor;
+      ctx.fillStyle = frame.backgroundColor || defaultBackgroundColor || '#ffffff';
       ctx.fillRect(0, 0, width, height);
     }
     const img = new Image();

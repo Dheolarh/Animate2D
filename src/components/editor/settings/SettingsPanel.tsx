@@ -32,9 +32,8 @@ interface SettingsPanelProps {
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ project, onProjectUpdate, onSave, onClose }) => {
-  const { frames, animationSettings, canvasState } = useSpriteEditor();
+  const { frames, animationSettings, canvasState, setCanvasState } = useSpriteEditor();
   const [showPreview, setShowPreview] = useState(false);
-  const [transparentBackground, setTransparentBackground] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [encodeProgress, setEncodeProgress] = useState(0);
 
@@ -43,7 +42,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ project, onProjectUpdate,
     fps: animationSettings.fps,
     width: canvasState.width,
     height: canvasState.height,
-    transparent: transparentBackground,
+    transparent: canvasState.showTransparentFrame,
     backgroundColor: canvasState.backgroundColor || '#ffffff',
   };
 
@@ -135,8 +134,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ project, onProjectUpdate,
             </Tooltip>
             <Switch
               id="transparent-bg"
-              checked={transparentBackground}
-              onCheckedChange={setTransparentBackground}
+              checked={canvasState.showTransparentFrame}
+              onCheckedChange={(checked) => setCanvasState({ ...canvasState, showTransparentFrame: checked })}
               className="scale-75 origin-right"
             />
           </div>

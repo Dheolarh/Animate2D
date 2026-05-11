@@ -80,8 +80,10 @@ const AnimationPreview: React.FC<AnimationPreviewProps> = ({ open, onOpenChange 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
       // Fill background if not transparent
-      ctx.fillStyle = canvasState.backgroundColor || '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (!canvasState.showTransparentFrame) {
+        ctx.fillStyle = frame.backgroundColor || canvasState.backgroundColor || '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
       
       // Apply frame-specific opacity if set
       ctx.globalAlpha = (frame.opacity ?? 100) / 100;

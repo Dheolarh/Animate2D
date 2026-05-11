@@ -87,6 +87,7 @@ const FabricDrawingCanvas: React.FC = () => {
     textCharSpacing,
     setFabricCanvas,
     onionSkinFrameCount,
+    onionSkinOpacity,
     historyRevision
   } = useSpriteEditor();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -113,18 +114,19 @@ const FabricDrawingCanvas: React.FC = () => {
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
     canvas.setDimensions({ width: canvasState.width, height: canvasState.height });
-    canvas.backgroundColor = canvasState.backgroundColor || '#ffffff';
+    canvas.backgroundColor = 'rgba(0,0,0,0)';
     canvas.renderAll();
-  }, [canvasState.width, canvasState.height, canvasState.backgroundColor]);
+  }, [canvasState.width, canvasState.height]);
 
   // Initialize Barebones Canvas
   useEffect(() => {
     if (!canvasRef.current) return;
 
+    const currentFrame = frames.find(f => f.id === currentFrameId);
     const canvas = new fabric.Canvas(canvasRef.current, {
       width: canvasState.width,
       height: canvasState.height,
-      backgroundColor: canvasState.backgroundColor || '#ffffff',
+      backgroundColor: 'rgba(0,0,0,0)',
       preserveObjectStacking: true,
       selectionColor: 'rgba(17, 24, 39, 0.1)',
       selectionBorderColor: '#111827',
@@ -374,8 +376,14 @@ const FabricDrawingCanvas: React.FC = () => {
     
     const loadImages = onionFrames.map((frame, i) => {
       const distance = currentIndex - (startIndex + i);
-      // Immediate previous frame at 90%, drops 15% per frame, minimum 25%
-      const opacity = Math.max(0.25, 0.9 - ((distance - 1) * 0.15));
+      // Use the global onion skin opacity as base, and multiply by the individual frame's opacity
+      const frameBaseOpacity = (frame.opacity ?? 100) / 100;
+      const globalOnionBase = (onionSkinOpacity ?? 40) / 100;
+      
+      // Still apply a slight distance-based fade so older frames are subtler,
+      // but keep it very subtle (from 100% down to 60% of the base opacity)
+      const distanceMultiplier = Math.max(0.6, 1.0 - ((distance - 1) * 0.1));
+      const finalOpacity = frameBaseOpacity * globalOnionBase * distanceMultiplier;
       
       return new Promise<{img: HTMLImageElement, opacity: number} | null>((resolve) => {
         if (!frame.thumbnail) {
@@ -383,7 +391,7 @@ const FabricDrawingCanvas: React.FC = () => {
           return;
         }
         const img = new Image();
-        img.onload = () => resolve({ img, opacity });
+        img.onload = () => resolve({ img, opacity: finalOpacity });
         img.onerror = () => resolve(null);
         img.src = frame.thumbnail;
       });
@@ -405,7 +413,7 @@ const FabricDrawingCanvas: React.FC = () => {
     return () => {
       isActive = false;
     };
-  }, [currentFrameId, frames, onionSkinFrameCount]);
+  }, [currentFrameId, frames, onionSkinFrameCount, onionSkinOpacity]);
 
   return (
     <div
@@ -494,7 +502,8 @@ const FabricDrawingCanvas: React.FC = () => {
       <div
         className="absolute top-0 left-0 flex items-center justify-center shadow-2xl border border-border pointer-events-none"
         style={{
-          backgroundColor: canvasState.backgroundColor || '#ffffff',
+          backgroundColor: canvasState.showTransparentFrame ? 'transparent' : (frames.find(f => f.id === currentFrameId)?.backgroundColor || canvasState.backgroundColor || '#ffffff'),
+          backgroundImage: canvasState.showTransparentFrame ? 'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAGElEQVQYV2NkYGAQYKABjAhlVEMDmgZ1AAAbVwA1rT00+QAAAABJRU5ErkJggg==")' : 'none',
           width: canvasState.width,
           height: canvasState.height,
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom / 100})`,
