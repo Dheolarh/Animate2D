@@ -51,6 +51,7 @@ interface SpriteEditorContextType {
   // Save status
   saveStatus: 'saved' | 'saving' | 'unsaved';
   setSaveStatus: (status: 'saved' | 'saving' | 'unsaved') => void;
+  isHydrated: boolean;
 
   undo: () => void;
   redo: () => void;

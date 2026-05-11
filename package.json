@@ -50,6 +50,7 @@
     "eventsource-parser": "^3.0.6",
     "fabric": "7.3.1",
     "gifenc": "^1.0.3",
+    "idb-keyval": "^6.2.2",
     "input-otp": "^1.4.2",
     "ky": "^1.13.0",
     "lucide-react": "^0.576.0",
