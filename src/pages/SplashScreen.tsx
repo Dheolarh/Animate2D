@@ -6,12 +6,9 @@ const SplashScreen: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      navigate('/projects');
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [navigate]);
+    // Automatic navigation removed as per user request.
+    // Navigation is now handled by the handleClick function.
+  }, []);
 
   const handleClick = () => {
     navigate('/projects');
@@ -23,6 +20,7 @@ const SplashScreen: React.FC = () => {
       onClick={handleClick}
     >
       <div className="absolute inset-0 notebook-lines opacity-20" />
+      <div className="absolute inset-y-0 left-12 w-px bg-[hsl(var(--notebook-margin))] opacity-30" />
       
       <div className="relative z-10 text-center px-4">
         <motion.div
@@ -39,7 +37,7 @@ const SplashScreen: React.FC = () => {
             transition={{ delay: 0.5, duration: 0.8 }}
             className="text-xl md:text-2xl text-muted-foreground font-mono"
           >
-            Browser-Based Animation Studio
+            Browser-Based 2D Animation Studio
           </motion.p>
         </motion.div>
 
@@ -59,7 +57,7 @@ const SplashScreen: React.FC = () => {
               repeat: Number.POSITIVE_INFINITY,
               ease: "easeInOut"
             }}
-            className="w-16 h-16 bg-gradient-to-br from-primary to-primary/70 rounded-sm sketch-border shadow-lg"
+            className="w-16 h-16 bg-gradient-to-br from-[#FF3B30] to-[#FF9500] rounded-sm sketch-border shadow-[0_10px_20px_-10px_rgba(255,59,48,0.5)]"
           />
           <motion.div
             animate={{ 
@@ -71,7 +69,7 @@ const SplashScreen: React.FC = () => {
               ease: "easeInOut",
               delay: 0.3
             }}
-            className="w-16 h-16 bg-gradient-to-br from-accent to-accent/70 rounded-sm sketch-border shadow-lg"
+            className="w-16 h-16 bg-gradient-to-br from-[#34C759] to-[#30B0C7] rounded-sm sketch-border shadow-[0_10px_20px_-10px_rgba(52,199,89,0.5)]"
           />
           <motion.div
             animate={{ 
@@ -84,7 +82,7 @@ const SplashScreen: React.FC = () => {
               ease: "easeInOut",
               delay: 0.6
             }}
-            className="w-16 h-16 bg-gradient-to-br from-chart-2 to-chart-2/70 rounded-sm sketch-border shadow-lg"
+            className="w-16 h-16 bg-gradient-to-br from-[#007AFF] to-[#5856D6] rounded-sm sketch-border shadow-[0_10px_20px_-10px_rgba(0,122,255,0.5)]"
           />
         </motion.div>
 
@@ -105,7 +103,7 @@ const SplashScreen: React.FC = () => {
           transition={{ delay: 1.5, duration: 0.8 }}
           className="text-xs text-muted-foreground font-mono"
         >
-          No login required • Auto-save to browser • Free to use
+          Version 0.1
         </motion.div>
       </div>
     </div>

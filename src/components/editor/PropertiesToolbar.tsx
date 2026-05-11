@@ -68,7 +68,7 @@ const PropertiesToolbar: React.FC = () => {
   };
 
   return (
-    <div className="absolute right-0 top-0 bottom-0 w-16 border-l border-border bg-card flex flex-col items-center py-4 gap-4 z-20 shadow-sm animate-in fade-in slide-in-from-right-4 duration-200">
+    <div className="absolute right-0 top-0 bottom-0 w-16 border-l border-border bg-card flex flex-col items-center py-4 gap-4 z-20 shadow-sm animate-in fade-in slide-in-from-right-4 duration-200 overflow-y-auto no-scrollbar">
       
       {/* 1. ERASER, BRUSH or SHAPES */}
       {(activeTool === 'brush' || activeTool === 'eraser' || activeTool === 'rectangle' || activeTool === 'circle' || activeTool === 'triangle') && (

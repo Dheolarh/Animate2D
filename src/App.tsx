@@ -4,17 +4,16 @@ import IntersectObserver from '@/components/common/IntersectObserver';
 import { Toaster } from '@/components/ui/sonner';
 
 import { routes } from './routes';
-
-// import { AuthProvider } from '@/contexts/AuthContext';
-// import { RouteGuard } from '@/components/common/RouteGuard';
+import DesktopOnlyGuard from '@/components/common/DesktopOnlyGuard';
 
 const App: React.FC = () => {
   return (
-    <Router>
-      {/*<AuthProvider>*/}
-      {/*<RouteGuard>*/}
-      <IntersectObserver />
-      <div className="flex flex-col min-h-screen">
+    <DesktopOnlyGuard>
+      <Router>
+        {/*<AuthProvider>*/}
+        {/*<RouteGuard>*/}
+        <IntersectObserver />
+        <div className="flex flex-col min-h-screen">
         {/*<Header />*/}
         <main className="flex-grow">
           <Routes>
@@ -32,7 +31,8 @@ const App: React.FC = () => {
       <Toaster />
       {/*</RouteGuard>*/}
       {/*</AuthProvider>*/}
-    </Router>
+      </Router>
+    </DesktopOnlyGuard>
   );
 };
 

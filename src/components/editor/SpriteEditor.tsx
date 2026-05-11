@@ -30,7 +30,21 @@ const SpriteEditorContent: React.FC<SpriteEditorProps> = ({
   onPlayPause,
   onStop
 }) => {
-  const { animationSettings, saveStatus, isHydrated } = useSpriteEditor();
+  const { animationSettings, saveStatus, isHydrated, frames } = useSpriteEditor();
+
+  // Update project thumbnail with the last frame whenever frames change
+  React.useEffect(() => {
+    if (!isHydrated || frames.length === 0) return;
+    
+    const lastFrame = frames[frames.length - 1];
+    if (lastFrame.thumbnail && lastFrame.thumbnail !== project.thumbnail) {
+      const updatedProject = {
+        ...project,
+        thumbnail: lastFrame.thumbnail
+      };
+      onProjectUpdate(updatedProject);
+    }
+  }, [frames, isHydrated, project.thumbnail, onProjectUpdate]);
 
   const handleSave = () => {
     if (!animationSettings.name.trim()) {

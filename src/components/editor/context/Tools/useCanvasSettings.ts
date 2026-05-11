@@ -5,7 +5,7 @@ export const useCanvasSettings = () => {
   const [canvasState, setCanvasState] = useState<CanvasState>({
     width: 512,
     height: 512,
-    showTransparentFrame: true,
+    showTransparentFrame: false,
     backgroundColor: '#ffffff'
   });
 

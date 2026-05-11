@@ -17,7 +17,7 @@ const SceneEditorPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
-  const [mode, setMode] = useState<EditorMode>('scene');
+  const [mode, setMode] = useState<EditorMode>('sprite');
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const [playheadTime, setPlayheadTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);

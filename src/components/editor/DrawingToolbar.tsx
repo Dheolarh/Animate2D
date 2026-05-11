@@ -39,7 +39,7 @@ const DrawingToolbar: React.FC = () => {
   };
 
   return (
-    <div className="w-16 border-r border-border bg-card flex flex-col items-center py-4 gap-4 z-10 shadow-sm flex-shrink-0">
+    <div className="w-16 border-r border-border bg-card flex flex-col items-center py-4 gap-4 z-10 shadow-sm flex-shrink-0 overflow-y-auto no-scrollbar">
       <ToggleGroup 
         type="single" 
         value={activeTool} 

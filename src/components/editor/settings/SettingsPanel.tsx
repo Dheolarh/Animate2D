@@ -23,6 +23,9 @@ import { useSpriteEditor } from '../context/SpriteEditorContext';
 import { exportAsMP4, exportAsSpriteSheet } from '../utils/exportUtils';
 import type { Project, SpriteSheetAsset } from '@/types/animation';
 import { toast } from 'sonner';
+import { FEATURES } from '@/config/features';
+import { cn } from '@/lib/utils';
+import { Lock } from 'lucide-react';
 
 interface SettingsPanelProps {
   project: Project;
@@ -205,18 +208,27 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ project, onProjectUpdate,
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuItem
-                    onClick={handleBakeToSpriteSheet}
-                    className="cursor-pointer gap-2 p-2"
-                    disabled={isExporting}
+                    onClick={FEATURES.DEV_MODE ? undefined : handleBakeToSpriteSheet}
+                    className={cn(
+                      "cursor-pointer gap-2 p-2", 
+                      FEATURES.DEV_MODE && "opacity-50 grayscale cursor-not-allowed"
+                    )}
+                    disabled={isExporting || FEATURES.DEV_MODE}
                   >
-                    <Save className="w-4 h-4 text-muted-foreground" />
-                    <div className="flex flex-col">
-                      <span className="font-medium text-xs">Save as sprite</span>
+                    <div className="flex items-center gap-2 flex-1">
+                      {FEATURES.DEV_MODE ? <Lock className="w-4 h-4 text-muted-foreground" /> : <Save className="w-4 h-4 text-muted-foreground" />}
+                      <div className="flex flex-col">
+                        <span className="font-medium text-xs">Save as sprite</span>
+                      </div>
                     </div>
                   </DropdownMenuItem>
                 </TooltipTrigger>
                 <TooltipContent side="right">
-                  <p className="text-[10px]">Turn into an optimized asset for your scenes</p>
+                  <p className="text-[10px]">
+                    {FEATURES.DEV_MODE 
+                      ? "Feature locked during version 0.1 (Scene Engine in development)" 
+                      : "Turn into an optimized asset for your scenes"}
+                  </p>
                 </TooltipContent>
               </Tooltip>
             </DropdownMenuContent>

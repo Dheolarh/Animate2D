@@ -15,7 +15,8 @@ const ProjectScreen: React.FC = () => {
   const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [newProjectName, setNewProjectName] = useState('');
-  const [canvasSize, setCanvasSize] = useState('1280x720');
+  const [canvasWidth, setCanvasWidth] = useState(1280);
+  const [canvasHeight, setCanvasHeight] = useState(720);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -33,9 +34,13 @@ const ProjectScreen: React.FC = () => {
       return;
     }
 
+    if (canvasWidth <= 0 || canvasHeight <= 0) {
+      toast.error('Dimensions must be greater than 0');
+      return;
+    }
+
     try {
-      const [width, height] = canvasSize.split('x').map(Number);
-      const project = storage.createProject(newProjectName.trim(), width, height);
+      const project = storage.createProject(newProjectName.trim(), canvasWidth, canvasHeight);
       storage.setCurrentProjectId(project.id);
       toast.success('Project created successfully');
       navigate(`/editor/${project.id}`);
@@ -89,18 +94,22 @@ const ProjectScreen: React.FC = () => {
       <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-8 flex items-start justify-between">
           <div>
-            <h1 className="text-5xl font-bold text-foreground mb-2">Animate2D</h1>
+            <h1 
+              className="text-5xl font-bold tracking-tighter flex mb-2"
+              style={{ fontFamily: "'Courier New', Courier, monospace" }}
+            >
+              <span style={{ color: '#FF3B30' }}>A</span>
+              <span style={{ color: '#FF9500' }}>n</span>
+              <span style={{ color: '#FFCC00' }}>i</span>
+              <span style={{ color: '#34C759' }}>m</span>
+              <span style={{ color: '#007AFF' }}>a</span>
+              <span style={{ color: '#5856D6' }}>t</span>
+              <span style={{ color: '#FF2D55' }}>e</span>
+              <span style={{ color: '#32ADE6' }}>2</span>
+              <span style={{ color: '#AF52DE' }}>D</span>
+            </h1>
             <p className="text-muted-foreground font-mono">Your Projects</p>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleDownloadCodebase}
-            className="gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Download Source Code
-          </Button>
         </div>
 
         <div className="mb-8">
@@ -114,9 +123,6 @@ const ProjectScreen: React.FC = () => {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create New Project</DialogTitle>
-                <DialogDescription>
-                  Enter a name for your new animation project
-                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
@@ -134,29 +140,41 @@ const ProjectScreen: React.FC = () => {
                     }}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="canvas-size">Canvas Size</Label>
-                  <select
-                    id="canvas-size"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    value={canvasSize}
-                    onChange={(e) => setCanvasSize(e.target.value)}
-                  >
-                    <optgroup label="Landscape">
-                      <option value="854x480">480p (854 × 480)</option>
-                      <option value="1280x720">720p (1280 × 720)</option>
-                      <option value="1920x1080">1080p (1920 × 1080)</option>
-                    </optgroup>
-                    <optgroup label="Portrait">
-                      <option value="480x854">480p Portrait (480 × 854)</option>
-                      <option value="720x1280">720p Portrait (720 × 1280)</option>
-                      <option value="1080x1920">1080p Portrait (1080 × 1920)</option>
-                    </optgroup>
-                    <optgroup label="Square">
-                      <option value="512x512">Square (512 × 512)</option>
-                      <option value="1024x1024">Square Large (1024 × 1024)</option>
-                    </optgroup>
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="canvas-width">Width (px)</Label>
+                    <Input
+                      id="canvas-width"
+                      type="number"
+                      min="1"
+                      max="4096"
+                      value={canvasWidth}
+                      onChange={(e) => setCanvasWidth(parseInt(e.target.value) || 0)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleCreateProject();
+                          setIsCreateDialogOpen(false);
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="canvas-height">Height (px)</Label>
+                    <Input
+                      id="canvas-height"
+                      type="number"
+                      min="1"
+                      max="4096"
+                      value={canvasHeight}
+                      onChange={(e) => setCanvasHeight(parseInt(e.target.value) || 0)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleCreateProject();
+                          setIsCreateDialogOpen(false);
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
               <DialogFooter>
@@ -180,9 +198,6 @@ const ProjectScreen: React.FC = () => {
             <CardContent className="flex flex-col items-center justify-center py-16">
               <FolderOpen className="w-16 h-16 text-muted-foreground mb-4" />
               <h3 className="text-xl font-semibold mb-2">No projects yet</h3>
-              <p className="text-muted-foreground mb-6 text-center max-w-md">
-                Create your first animation project to get started. All projects are saved automatically to your browser.
-              </p>
               <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
                 <Plus className="w-4 h-4" />
                 Create Your First Project
@@ -201,8 +216,8 @@ const ProjectScreen: React.FC = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <CardTitle className="truncate">{project.name}</CardTitle>
-                      <CardDescription className="mt-1">
-                        {project.settings.canvasWidth} × {project.settings.canvasHeight} • {project.settings.fps} fps
+                      <CardDescription className="mt-1 font-mono text-[10px] uppercase tracking-wider">
+                        Modified: {formatDate(project.updatedAt)}
                       </CardDescription>
                     </div>
                     <AlertDialog>
@@ -239,12 +254,20 @@ const ProjectScreen: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="aspect-video bg-muted rounded-md mb-3 flex items-center justify-center border">
-                    <Settings className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>{project.assets.length} assets</span>
-                    <span>{formatDate(project.updatedAt)}</span>
+                  <div className="aspect-video bg-white rounded-md mb-2 flex items-center justify-center border overflow-hidden relative">
+                    <div className="absolute inset-0 notebook-lines opacity-5" />
+                    {project.thumbnail ? (
+                      <img 
+                        src={project.thumbnail} 
+                        alt={project.name} 
+                        className="w-full h-full object-contain relative z-10"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 opacity-20">
+                        <FolderOpen className="w-8 h-8" />
+                        <span className="text-[10px] font-mono uppercase">Empty Canvas</span>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

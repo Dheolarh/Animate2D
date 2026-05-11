@@ -5,6 +5,8 @@ import { Separator } from '@/components/ui/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import type { EditorMode } from '@/types/animation';
 import { useNavigate } from 'react-router-dom';
+import { FEATURES } from '@/config/features';
+import DevelopmentNotice from '@/components/common/DevelopmentNotice';
 
 interface TopToolbarProps {
   mode: EditorMode;
@@ -26,6 +28,23 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
   saveStatus = 'saved'
 }) => {
   const navigate = useNavigate();
+  const [showDevNotice, setShowDevNotice] = React.useState(false);
+
+  const handleModeChange = (newMode: EditorMode) => {
+    if (FEATURES.DEV_MODE && (newMode === 'scene' || newMode === 'export')) {
+      setShowDevNotice(true);
+      return;
+    }
+    onModeChange(newMode);
+  };
+
+  const handlePlaybackAction = (action: () => void) => {
+    if (FEATURES.DEV_MODE) {
+      setShowDevNotice(true);
+      return;
+    }
+    action();
+  };
 
   return (
     <div className="h-16 border-b bg-gradient-to-b from-card to-card/95 backdrop-blur-sm flex items-center px-6 justify-between shadow-sm relative">
@@ -41,8 +60,8 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
           <ArrowLeft className="w-4 h-4" />
         </Button>
 
-        <div className="font-semibold text-sm truncate max-w-xs px-3 py-1.5 rounded-md bg-muted/50">
-          {projectName}
+        <div className="font-semibold text-sm truncate max-w-xs px-3 py-1.5 rounded-md bg-muted/50" title={projectName}>
+          {projectName.length > 10 ? projectName.substring(0, 10) + '...' : projectName}
         </div>
 
         <Separator orientation="vertical" className="h-8" />
@@ -50,7 +69,7 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
         <ToggleGroup 
           type="single" 
           value={mode} 
-          onValueChange={(value) => value && onModeChange(value as EditorMode)}
+          onValueChange={(value) => value && handleModeChange(value as EditorMode)}
           className="bg-muted/30 rounded-lg p-1 shadow-inner"
         >
           <ToggleGroupItem 
@@ -79,7 +98,7 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              onClick={onPlayPause}
+              onClick={() => handlePlaybackAction(onPlayPause)}
               title={isPlaying ? 'Pause' : 'Play'}
               className="rounded-md hover:bg-accent/80 transition-all duration-200 hover:scale-105"
             >
@@ -88,7 +107,7 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              onClick={onStop}
+              onClick={() => handlePlaybackAction(onStop)}
               title="Stop"
               className="rounded-md hover:bg-accent/80 transition-all duration-200 hover:scale-105"
             >
@@ -122,7 +141,7 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
             <Button
               variant={mode === 'export' ? 'default' : 'ghost'}
               size="icon"
-              onClick={() => onModeChange('export')}
+              onClick={() => handleModeChange('export')}
               title="Export"
               className="rounded-full hover:bg-accent/80 transition-all duration-200 hover:scale-105"
             >
@@ -131,6 +150,11 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
           </>
         )}
       </div>
+
+      <DevelopmentNotice 
+        isOpen={showDevNotice} 
+        onClose={() => setShowDevNotice(false)} 
+      />
     </div>
   );
 };
