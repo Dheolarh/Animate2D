@@ -1,165 +1,104 @@
-# Animate2D - Installation Guide
+# Animate2D - Installation & Run Guide (v0.1)
+
+Animate2D is a modern, web-based 2D animation engine designed for simplicity and speed. This version (0.1) focuses on a robust **Sprite Editor** with a local-first storage architecture.
 
 ## Prerequisites
 
-- Node.js 18+ or 20+
-- npm or pnpm
+- **Node.js**: 18.0.0 or higher
+- **Package Manager**: npm (recommended) or pnpm
 
 ## Installation Steps
 
-### Step 1: Extract the Zip File
-
-If you downloaded the codebase as a zip file:
-
+### 1. Clone or Extract
+Ensure you are in the project root directory:
 ```bash
-unzip animate2d-codebase.zip
-cd app-b51z9aa40zk1
+cd Animate2D
 ```
 
-### Step 2: Install Dependencies
-
-**IMPORTANT**: Due to a peer dependency conflict between `fabric@7.3.1` and `erase2d@1.0.4`, you need to use the `--legacy-peer-deps` flag:
+### 2. Install Dependencies
+**CRITICAL**: This project uses a combination of modern canvas libraries that require legacy peer resolution. You **must** use the following flag:
 
 ```bash
 npm install --legacy-peer-deps
 ```
 
-Or if you're using pnpm:
+*Note: If you encounter an `ERESOLVE` error, it is because of the `erase2d` plugin requiring a specific beta version of Fabric.js. The `--legacy-peer-deps` flag safely bypasses this for the production-ready Fabric 7.x.*
 
+### 3. Start Development Server
 ```bash
-pnpm install --no-strict-peer-deps
+npx vite
 ```
+*Note: This starts the development server. For production, see the Deployment section below.*
 
-### Step 3: Run Development Server
+The application will be available at: **http://localhost:5173**
 
+---
+
+## Production & Deployment
+
+`npx vite` is **not** intended for production. To prepare the app for a live environment:
+
+### 1. Build the Project
 ```bash
-npm run dev
+npx vite build
 ```
+This generates a `dist/` folder containing optimized HTML, CSS, and JS.
 
-The app will open in your browser at `http://localhost:5173`
-
-### Step 4: Build for Production
-
+### 2. Preview Production Build
+To test the production version locally:
 ```bash
-npm run build
+npx vite preview
 ```
 
-The production build will be in the `dist/` folder.
+## Core Features (Version 0.1)
 
-## Dependency Conflict Explanation
-
-### Why `--legacy-peer-deps`?
-
-The app uses:
-- `fabric@7.3.1` - Latest version of Fabric.js for canvas manipulation
-- `erase2d@1.0.4` - Eraser tool that requires `fabric@6.0.0-beta18`
-
-This creates a peer dependency conflict. However, Fabric.js 7.x is backward compatible with the eraser tool, so using `--legacy-peer-deps` is safe and the app works correctly.
-
-### Alternative Solutions
-
-If you prefer not to use `--legacy-peer-deps`, you can:
-
-1. **Downgrade Fabric.js** (not recommended - you'll lose features):
-   ```bash
-   npm install fabric@6.0.0-beta18
-   ```
-
-2. **Use `--force`** (not recommended - may cause issues):
-   ```bash
-   npm install --force
-   ```
-
-3. **Wait for erase2d update** - The maintainer may update to support Fabric.js 7.x
-
-## Troubleshooting
-
-### Error: `ERESOLVE unable to resolve dependency tree`
-
-**Solution**: Use `--legacy-peer-deps` flag:
-```bash
-npm install --legacy-peer-deps
-```
-
-### Error: `Module not found`
-
-**Solution**: Make sure you installed dependencies:
-```bash
-npm install --legacy-peer-deps
-```
-
-### Error: `Port 5173 already in use`
-
-**Solution**: Kill the process using port 5173 or use a different port:
-```bash
-npm run dev -- --port 3000
-```
-
-### TypeScript Errors
-
-**Solution**: The project uses TypeScript 5.9.3. Make sure your IDE is using the workspace TypeScript version.
-
-## Project Structure
-
-```
-app-b51z9aa40zk1/
-├── public/              # Static files
-├── src/
-│   ├── components/      # React components
-│   │   ├── editor/      # Canvas editor components
-│   │   ├── ui/          # shadcn/ui components
-│   │   └── common/      # Common components
-│   ├── pages/           # Page components
-│   ├── types/           # TypeScript types
-│   ├── utils/           # Utility functions
-│   ├── lib/             # Library code
-│   ├── App.tsx          # Main app component
-│   ├── main.tsx         # Entry point
-│   └── index.css        # Global styles
-├── package.json         # Dependencies
-├── tsconfig.json        # TypeScript config
-├── tailwind.config.js   # Tailwind CSS config
-└── vite.config.ts       # Vite config
-```
-
-## Features
-
-- **Sprite Editor**: Draw with brush, shapes, lines, text, and images
-- **Canvas Tools**: Rectangle, Circle, Triangle, Line, Text, Image Upload
-- **Color Picker**: Choose any color for drawing
-- **Brush Size**: Adjustable brush size
-- **Eraser**: Erase parts of your drawing
-- **Fill/Stroke**: Toggle between fill and stroke modes for shapes
-- **Undo/Redo**: Full undo/redo support
-- **Auto-Save**: Automatic saving to localStorage
-- **Version History**: Track canvas versions
-- **Dark Mode**: Built-in dark mode support
-- **Responsive**: Works on desktop and mobile
+- **Advanced Sprite Editor**: Full drawing suite (Brush, Eraser, Shapes, Text).
+- **Onion Skinning**: Visualize previous/next frames for smooth animation.
+- **Local-First Storage**: All projects are automatically saved to your browser's IndexedDB/LocalStorage.
+- **Dynamic Inspector**: Real-time property editing for all canvas objects.
+- **Project Gallery**: Manage multiple projects with automatic "Last Frame" thumbnails.
 
 ## Keyboard Shortcuts
 
-- `B` - Brush tool
-- `E` - Eraser tool
-- `R` - Rectangle tool
-- `C` - Circle tool
-- `T` - Text tool
-- `L` - Line tool
-- `I` - Image upload
-- `Delete` - Delete selected object
-- `Ctrl+Z` - Undo
-- `Ctrl+Y` - Redo
+- `Q` - Select Tool
+- `W` - Brush Tool
+- `E` - Eraser Tool
+- `R` - Rectangle Tool
+- `T` - Circle Tool
+- `Y` - Triangle Tool
+- `U` - Text Tool
+- `Backspace/Delete` - Remove Selection
+- `Ctrl + Z` - Undo
+- `Ctrl + Y` - Redo
+- `Ctrl + D` - Duplicate Selection
 
-## Technologies Used
+---
 
-- **React 18** - UI framework
-- **TypeScript** - Type safety
-- **Vite** - Build tool
-- **Fabric.js 7.3.1** - Canvas manipulation
-- **Tailwind CSS** - Styling
-- **shadcn/ui** - UI components
-- **Lucide React** - Icons
-- **Sonner** - Toast notifications
-- **React Router** - Routing
+## System Restrictions
+
+### Desktop-Only Experience
+Animate2D is designed for precise drawing workflows. A **Desktop Guard** is active; the application will not load on screens smaller than **768px** (mobile/small tablets).
+
+### Development Mode
+Features currently under construction (Scene Editor, Playback Controls, Export to Sprite) will display a **Development Notice** modal. These are planned for the Version 0.2 release.
+
+## Troubleshooting
+
+| Issue | Solution |
+| :--- | :--- |
+| `ERESOLVE unable to resolve...` | Run `npm install --legacy-peer-deps` |
+| `Vite command not found` | Ensure `npm install` completed successfully |
+| Blank Screen on Mobile | Open on a Desktop browser with a screen width > 768px |
+| Local Storage Full | Delete older projects from the Project Screen |
+
+---
+
+## Technical Stack
+- **Framework**: React 18 + Vite
+- **Canvas Engine**: Fabric.js 7.3.1
+- **Styling**: Tailwind CSS + shadcn/ui
+- **Icons**: Lucide React
+- **Storage**: IndexedDB (via idb-keyval)
 
 ## Development
 
