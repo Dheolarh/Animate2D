@@ -78,7 +78,18 @@ const AnimationPreview: React.FC<AnimationPreviewProps> = ({ open, onOpenChange 
     const img = new Image();
     img.onload = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Fill background if not transparent
+      ctx.fillStyle = canvasState.backgroundColor || '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Apply frame-specific opacity if set
+      ctx.globalAlpha = (frame.opacity ?? 100) / 100;
+      
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      
+      // Reset alpha for next frame
+      ctx.globalAlpha = 1.0;
     };
     img.src = frame.thumbnail;
   }, [currentFrameIndex, playableFrames, canvasState.width, canvasState.height]);

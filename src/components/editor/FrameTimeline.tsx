@@ -15,11 +15,14 @@ const FrameTimeline: React.FC = () => {
     deleteFrame,
     reorderFrames,
     onionSkinFrameCount,
-    setOnionSkinFrameCount
+    setOnionSkinFrameCount,
+    setFrameOpacity
   } = useSpriteEditor();
 
   const dragIndexRef = useRef<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const currentFrame = frames.find(f => f.id === currentFrameId);
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
     dragIndexRef.current = index;
@@ -59,6 +62,24 @@ const FrameTimeline: React.FC = () => {
       <div className="h-8 border-b border-border flex items-center px-4 justify-between bg-muted/30">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Frames</h3>
         <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 border-r border-border pr-4">
+            <label htmlFor="frameOpacity" className="text-[10px] font-medium text-muted-foreground uppercase cursor-pointer" title="Opacity of the currently selected frame">
+              Opacity:
+            </label>
+            <div className="flex items-center gap-1">
+              <input 
+                id="frameOpacity"
+                type="number" 
+                min="0" 
+                max="100" 
+                value={currentFrame?.opacity ?? 100}
+                onChange={(e) => currentFrameId && setFrameOpacity(currentFrameId, Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                className="w-10 h-6 bg-background border border-border rounded text-xs px-1 text-center font-mono outline-none focus:border-primary"
+                title="Frame Opacity (0-100)"
+              />
+              <span className="text-[10px] text-muted-foreground">%</span>
+            </div>
+          </div>
           <div className="flex items-center gap-2 border-r border-border pr-4">
             <label htmlFor="onionSkin" className="text-[10px] font-medium text-muted-foreground uppercase cursor-pointer" title="Number of previous frames to ghost underneath the active canvas">
               Onion Skin:

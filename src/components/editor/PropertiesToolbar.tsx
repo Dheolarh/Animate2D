@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Trash2, Lock, Unlock, Settings2, Type, Paintbrush, Copy, ChevronsUp, ChevronsDown, ChevronUp, ChevronDown } from 'lucide-react';
+import { Trash2, Lock, Unlock, Settings2, Type, Paintbrush, Copy, ChevronsUp, ChevronsDown, ChevronUp, ChevronDown, Group, Ungroup } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSpriteEditor } from './context/SpriteEditorContext';
 import { Separator } from '@/components/ui/separator';
@@ -26,7 +26,10 @@ const PropertiesToolbar: React.FC = () => {
     textStrokeWidth, changeTextStrokeWidth,
     textLineHeight, changeTextLineHeight,
     textCharSpacing, changeTextCharSpacing,
-    isTextSelected
+    isTextSelected,
+    isGroupSelected,
+    groupSelection,
+    ungroupSelection,
   } = useSpriteEditor();
 
   const isTextMode = activeTool === 'text' || isTextSelected;
@@ -253,6 +256,13 @@ const PropertiesToolbar: React.FC = () => {
               onClick={duplicateSelection} title="Duplicate Object (Ctrl+D)"
             >
               <Copy className="w-5 h-5" />
+            </Button>
+            <Button
+              variant="ghost" size="icon" className="w-10 h-10 rounded-xl"
+              onClick={isGroupSelected ? ungroupSelection : groupSelection} 
+              title={isGroupSelected ? "Ungroup Objects (Ctrl+Shift+G)" : "Group Objects (Ctrl+G)"}
+            >
+              {isGroupSelected ? <Ungroup className="w-5 h-5" /> : <Group className="w-5 h-5" />}
             </Button>
             <Button
               variant="ghost" size="icon" className="w-10 h-10 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10"

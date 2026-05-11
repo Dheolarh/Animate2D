@@ -16,4 +16,5 @@ export interface EditorFrame {
   id: string;
   fabricData: any | null; // JSON representation of the fabric canvas objects
   thumbnail: string | null; // Base64 image data URL
+  opacity?: number; // 0-100 percentage
 }

@@ -239,7 +239,7 @@ const FabricDrawingCanvas: React.FC = () => {
       const thumbnail = canvas.toDataURL({
         format: 'png',
         quality: 0.8,
-        multiplier: 0.2 // scaled down for thumbnail performance
+        multiplier: 1.0 // Use 100% resolution for maximum preview clarity
       });
       updateFrameData(currentFrameId, json, thumbnail);
     };
@@ -510,7 +510,10 @@ const FabricDrawingCanvas: React.FC = () => {
             style={{ imageRendering: 'pixelated' }}
           />
         </div>
-        <div className="w-full h-full pointer-events-auto relative z-10">
+        <div 
+          className="w-full h-full pointer-events-auto relative z-10"
+          style={{ opacity: (frames.find(f => f.id === currentFrameId)?.opacity ?? 100) / 100 }}
+        >
           <canvas ref={canvasRef} />
         </div>
       </div>

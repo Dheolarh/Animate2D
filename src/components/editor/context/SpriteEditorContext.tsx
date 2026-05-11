@@ -43,6 +43,7 @@ interface SpriteEditorContextType {
   selectFrame: (id: string) => void;
   reorderFrames: (fromIndex: number, toIndex: number) => void;
   updateFrameData: (id: string, fabricData: any, thumbnail: string) => void;
+  setFrameOpacity: (id: string, opacity: number) => void;
 
   // Onion skin settings
   onionSkinFrameCount: number;
@@ -64,6 +65,8 @@ interface SpriteEditorContextType {
   sendBackward: () => void;
   sendToBack: () => void;
   nudgeSelection: (dx: number, dy: number) => void;
+  groupSelection: () => void;
+  ungroupSelection: () => void;
 
   // Image gallery state
   uploadedImages: UploadedImage[];
@@ -105,6 +108,7 @@ interface SpriteEditorContextType {
   hasSelection: boolean;
   isSelectionLocked: boolean;
   isTextSelected: boolean;
+  isGroupSelected: boolean;
   selectionOpacity: number;
   deleteSelection: () => void;
   toggleLockSelection: () => void;
@@ -129,6 +133,7 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
     hasSelection,
     isSelectionLocked,
     isTextSelected,
+    isGroupSelected,
     selectionOpacity,
     deleteSelection,
     toggleLockSelection,
@@ -139,6 +144,8 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
     sendBackward,
     sendToBack,
     nudgeSelection,
+    groupSelection,
+    ungroupSelection,
   } = canvasSelection;
 
   /**
@@ -174,6 +181,8 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
   const toggleLockSelectionRef = useRef(toggleLockSelection);
   const setActiveToolRef = useRef(toolState.setActiveTool);
   const nudgeSelectionRef = useRef(nudgeSelection);
+  const groupSelectionRef = useRef(groupSelection);
+  const ungroupSelectionRef = useRef(ungroupSelection);
   useEffect(() => { undoRef.current = frameManager.undo; }, [frameManager.undo]);
   useEffect(() => { redoRef.current = frameManager.redo; }, [frameManager.redo]);
   useEffect(() => { hasSelectionRef.current = hasSelection; }, [hasSelection]);
@@ -182,6 +191,8 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
   useEffect(() => { toggleLockSelectionRef.current = toggleLockSelection; }, [toggleLockSelection]);
   useEffect(() => { setActiveToolRef.current = toolState.setActiveTool; }, [toolState.setActiveTool]);
   useEffect(() => { nudgeSelectionRef.current = nudgeSelection; }, [nudgeSelection]);
+  useEffect(() => { groupSelectionRef.current = groupSelection; }, [groupSelection]);
+  useEffect(() => { ungroupSelectionRef.current = ungroupSelection; }, [ungroupSelection]);
 
   // Global Keyboard Shortcuts — registered ONCE, reads fresh values via refs
   useEffect(() => {
@@ -252,6 +263,15 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
           toggleLockSelectionRef.current();
           return;
         }
+        if ((e.ctrlKey || e.metaKey) && key === 'g') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            ungroupSelectionRef.current();
+          } else {
+            groupSelectionRef.current();
+          }
+          return;
+        }
       }
     };
 
@@ -262,6 +282,7 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
   const value = {
     ...canvasSettings,
     ...frameManager,
+    setFrameOpacity: frameManager.setFrameOpacity,
     ...imageGallery,
 
     // Tools

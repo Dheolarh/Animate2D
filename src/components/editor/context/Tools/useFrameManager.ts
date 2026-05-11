@@ -9,6 +9,7 @@ const defaultFrame = (): EditorFrame => ({
   id: `frame_${Date.now()}`,
   fabricData: null,
   thumbnail: null,
+  opacity: 100,
 });
 
 export const useFrameManager = () => {
@@ -193,6 +194,12 @@ export const useFrameManager = () => {
     });
   };
 
+  const setFrameOpacity = (id: string, opacity: number) => {
+    setFrames(prev => prev.map(f =>
+      f.id === id ? { ...f, opacity } : f
+    ));
+  };
+
   return {
     frames,
     currentFrameId,
@@ -203,6 +210,7 @@ export const useFrameManager = () => {
     selectFrame,
     reorderFrames,
     updateFrameData,
+    setFrameOpacity,
     undo,
     redo,
     canUndo: past.length > 0,

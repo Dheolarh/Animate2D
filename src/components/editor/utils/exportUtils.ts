@@ -66,6 +66,14 @@ const renderFrameFullRes = async (
       fc.backgroundColor = 'transparent';
     }
     
+    // Apply frame-specific opacity if set
+    fc.backgroundImage?.set({ opacity: (frame.opacity ?? 100) / 100 });
+    fc.getObjects().forEach(obj => {
+      // We multiply the object's existing opacity by the frame's opacity
+      const originalOpacity = obj.opacity ?? 1;
+      obj.set({ opacity: originalOpacity * ((frame.opacity ?? 100) / 100) });
+    });
+
     // Ensure all objects are rendered
     fc.renderAll();
   } else if (frame.thumbnail) {
@@ -80,7 +88,9 @@ const renderFrameFullRes = async (
       img.onerror = reject;
       img.src = frame.thumbnail!;
     });
+    ctx.globalAlpha = (frame.opacity ?? 100) / 100;
     ctx.drawImage(img, 0, 0, width, height);
+    ctx.globalAlpha = 1.0;
   }
 
   // We return the canvas element. Note: We don't dispose fc here because 
