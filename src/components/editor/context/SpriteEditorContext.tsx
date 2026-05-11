@@ -58,6 +58,11 @@ interface SpriteEditorContextType {
   canRedo: boolean;
   historyRevision: number;
   duplicateSelection: () => void;
+  bringToFront: () => void;
+  bringForward: () => void;
+  sendBackward: () => void;
+  sendToBack: () => void;
+  nudgeSelection: (dx: number, dy: number) => void;
 
   // Image gallery state
   uploadedImages: UploadedImage[];
@@ -126,7 +131,12 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
     deleteSelection,
     toggleLockSelection,
     changeSelectionOpacity,
-    duplicateSelection
+    duplicateSelection,
+    bringToFront,
+    bringForward,
+    sendBackward,
+    sendToBack,
+    nudgeSelection,
   } = canvasSelection;
 
   const toolState = useToolState(fabricCanvas);
@@ -139,6 +149,7 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
   const duplicateSelectionRef = useRef(duplicateSelection);
   const toggleLockSelectionRef = useRef(toggleLockSelection);
   const setActiveToolRef = useRef(toolState.setActiveTool);
+  const nudgeSelectionRef = useRef(nudgeSelection);
   useEffect(() => { undoRef.current = frameManager.undo; }, [frameManager.undo]);
   useEffect(() => { redoRef.current = frameManager.redo; }, [frameManager.redo]);
   useEffect(() => { hasSelectionRef.current = hasSelection; }, [hasSelection]);
@@ -146,6 +157,7 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
   useEffect(() => { duplicateSelectionRef.current = duplicateSelection; }, [duplicateSelection]);
   useEffect(() => { toggleLockSelectionRef.current = toggleLockSelection; }, [toggleLockSelection]);
   useEffect(() => { setActiveToolRef.current = toolState.setActiveTool; }, [toolState.setActiveTool]);
+  useEffect(() => { nudgeSelectionRef.current = nudgeSelection; }, [nudgeSelection]);
 
   // Global Keyboard Shortcuts — registered ONCE, reads fresh values via refs
   useEffect(() => {
@@ -186,6 +198,21 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
 
       // Selection Actions
       if (hasSelectionRef.current) {
+        // Arrow-key nudge: 1px normally, 10px with Shift
+        const arrowMap: Record<string, [number, number]> = {
+          'ArrowLeft':  [-1, 0],
+          'ArrowRight': [ 1, 0],
+          'ArrowUp':    [ 0,-1],
+          'ArrowDown':  [ 0, 1],
+        };
+        if (arrowMap[e.key]) {
+          e.preventDefault();
+          const step = e.shiftKey ? 10 : 1;
+          const [dx, dy] = arrowMap[e.key];
+          nudgeSelectionRef.current(dx * step, dy * step);
+          return;
+        }
+
         if (e.key === 'Delete' || e.key === 'Backspace') {
           e.preventDefault();
           deleteSelectionRef.current();

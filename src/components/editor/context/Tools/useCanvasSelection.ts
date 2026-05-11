@@ -49,7 +49,6 @@ export const useCanvasSelection = () => {
     const activeObjects = fabricCanvas.getActiveObjects();
     if (activeObjects.length > 0) {
       const isCurrentlyLocked = !!activeObjects[0].lockMovementX;
-      
       activeObjects.forEach(obj => {
         obj.set({
           lockMovementX: !isCurrentlyLocked,
@@ -78,7 +77,6 @@ export const useCanvasSelection = () => {
         evented: true,
       });
       if (clonedObj.type === 'activeSelection') {
-        // active selection needs a reference to the canvas
         clonedObj.canvas = fabricCanvas;
         clonedObj.forEachObject((obj: any) => {
           fabricCanvas.add(obj);
@@ -98,11 +96,70 @@ export const useCanvasSelection = () => {
     if (!fabricCanvas) return;
     const activeObjects = fabricCanvas.getActiveObjects();
     if (activeObjects.length > 0) {
-      activeObjects.forEach(obj => {
-        obj.set('opacity', opacity);
-      });
+      activeObjects.forEach(obj => { obj.set('opacity', opacity); });
       fabricCanvas.requestRenderAll();
     }
+  };
+
+  // ── Layer ordering ──────────────────────────────────────────────────────────
+  const bringToFront = () => {
+    if (!fabricCanvas) return;
+    const obj = fabricCanvas.getActiveObject();
+    if (!obj) return;
+    fabricCanvas.bringObjectToFront(obj);
+    fabricCanvas.requestRenderAll();
+    fabricCanvas.fire('object:modified');
+  };
+
+  const bringForward = () => {
+    if (!fabricCanvas) return;
+    const obj = fabricCanvas.getActiveObject();
+    if (!obj) return;
+    const objects = fabricCanvas.getObjects();
+    const idx = objects.indexOf(obj);
+    if (idx < objects.length - 1) {
+      fabricCanvas.moveObjectTo(obj, idx + 1);
+    }
+    fabricCanvas.requestRenderAll();
+    fabricCanvas.fire('object:modified');
+  };
+
+  const sendBackward = () => {
+    if (!fabricCanvas) return;
+    const obj = fabricCanvas.getActiveObject();
+    if (!obj) return;
+    const objects = fabricCanvas.getObjects();
+    const idx = objects.indexOf(obj);
+    if (idx > 0) {
+      fabricCanvas.moveObjectTo(obj, idx - 1);
+    }
+    fabricCanvas.requestRenderAll();
+    fabricCanvas.fire('object:modified');
+  };
+
+  const sendToBack = () => {
+    if (!fabricCanvas) return;
+    const obj = fabricCanvas.getActiveObject();
+    if (!obj) return;
+    fabricCanvas.sendObjectToBack(obj);
+    fabricCanvas.requestRenderAll();
+    fabricCanvas.fire('object:modified');
+  };
+
+  // ── Arrow-key nudge (1px; caller passes 10px when Shift held) ──────────────
+  const nudgeSelection = (dx: number, dy: number) => {
+    if (!fabricCanvas) return;
+    const activeObjects = fabricCanvas.getActiveObjects();
+    if (!activeObjects.length) return;
+    activeObjects.forEach(obj => {
+      obj.set({
+        left: (obj.left ?? 0) + dx,
+        top: (obj.top ?? 0) + dy,
+      });
+      obj.setCoords();
+    });
+    fabricCanvas.requestRenderAll();
+    fabricCanvas.fire('object:modified');
   };
 
   return {
@@ -115,6 +172,11 @@ export const useCanvasSelection = () => {
     deleteSelection,
     toggleLockSelection,
     duplicateSelection,
-    changeSelectionOpacity
+    changeSelectionOpacity,
+    bringToFront,
+    bringForward,
+    sendBackward,
+    sendToBack,
+    nudgeSelection,
   };
 };

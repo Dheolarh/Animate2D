@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Trash2, Lock, Unlock, Settings2, Type, Paintbrush, Copy } from 'lucide-react';
+import { Trash2, Lock, Unlock, Settings2, Type, Paintbrush, Copy, ChevronsUp, ChevronsDown, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSpriteEditor } from './context/SpriteEditorContext';
 import { Separator } from '@/components/ui/separator';
@@ -18,6 +18,7 @@ const PropertiesToolbar: React.FC = () => {
     activeTool,
     brushSize, setBrushSize,
     hasSelection, isSelectionLocked, deleteSelection, toggleLockSelection, duplicateSelection,
+    bringToFront, bringForward, sendBackward, sendToBack,
     shapeFillMode, changeShapeFillMode,
     textSize, changeTextSize,
     textFontFamily, changeTextFontFamily,
@@ -202,11 +203,44 @@ const PropertiesToolbar: React.FC = () => {
         </div>
       )}
 
-      {/* Lock & Delete Buttons - Only for applicable tools when a selection exists */}
+      {/* Layer ordering & Object actions — for all tools except eraser, when something is selected */}
       {hasSelection && activeTool !== 'eraser' && (
         <>
           <Separator className="w-8 mt-auto" />
-          <div className="flex flex-col items-center gap-2 mb-2">
+          <div className="flex flex-col items-center gap-1 mb-1">
+            {/* Layer controls */}
+            <button
+              onClick={bringToFront}
+              className="w-10 h-7 flex items-center justify-center rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+              title="Bring to Front"
+            >
+              <ChevronsUp className="w-4 h-4" />
+            </button>
+            <button
+              onClick={bringForward}
+              className="w-10 h-7 flex items-center justify-center rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+              title="Move Up One Layer"
+            >
+              <ChevronUp className="w-4 h-4" />
+            </button>
+            <button
+              onClick={sendBackward}
+              className="w-10 h-7 flex items-center justify-center rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+              title="Move Down One Layer"
+            >
+              <ChevronDown className="w-4 h-4" />
+            </button>
+            <button
+              onClick={sendToBack}
+              className="w-10 h-7 flex items-center justify-center rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+              title="Send to Back"
+            >
+              <ChevronsDown className="w-4 h-4" />
+            </button>
+
+            <Separator className="w-6 my-1" />
+
+            {/* Object actions */}
             <Button
               variant="ghost" size="icon" className="w-10 h-10 rounded-xl"
               onClick={toggleLockSelection} title={isSelectionLocked ? "Unlock Object" : "Lock Object"}
@@ -215,13 +249,13 @@ const PropertiesToolbar: React.FC = () => {
             </Button>
             <Button
               variant="ghost" size="icon" className="w-10 h-10 rounded-xl"
-              onClick={duplicateSelection} title="Duplicate Object"
+              onClick={duplicateSelection} title="Duplicate Object (Ctrl+D)"
             >
               <Copy className="w-5 h-5" />
             </Button>
             <Button
               variant="ghost" size="icon" className="w-10 h-10 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={deleteSelection} title="Delete Object"
+              onClick={deleteSelection} title="Delete Object (Del)"
             >
               <Trash2 className="w-5 h-5" />
             </Button>

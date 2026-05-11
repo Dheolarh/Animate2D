@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Upload, Image as ImageIcon } from 'lucide-react';
+import { Upload, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSpriteEditor, type UploadedImage } from '../context/SpriteEditorContext';
 import { toast } from 'sonner';
@@ -75,6 +75,10 @@ const ImageGallery: React.FC = () => {
     setDraggingImageUrl(null);
   };
 
+  const handleDeleteImage = (idToRemove: string) => {
+    setUploadedImages(prev => prev.filter(img => img.id !== idToRemove));
+  };
+
   return (
     <div className="w-80 bg-card border-l border-border flex flex-col h-full">
       {/* Header */}
@@ -105,19 +109,44 @@ const ImageGallery: React.FC = () => {
           /* Image Grid */
           <div className="grid grid-cols-2 gap-2">
             {uploadedImages.map((image) => (
-              <div
-                key={image.id}
-                className="aspect-square bg-muted rounded border border-border overflow-hidden cursor-move hover:border-primary transition-colors"
-                draggable
-                onDragStart={(e) => handleDragStart(e, image)}
-                onDragEnd={handleDragEnd}
-              >
-                <img
-                  src={image.url}
-                  alt={image.name}
-                  className="w-full h-full object-cover"
-                  draggable={false}
-                />
+              <div key={image.id} className="flex flex-col gap-1">
+                <div
+                  className="aspect-square bg-muted rounded border border-border overflow-hidden cursor-move hover:border-primary transition-colors relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  draggable
+                  tabIndex={0}
+                  onDragStart={(e) => handleDragStart(e, image)}
+                  onDragEnd={handleDragEnd}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Delete' || e.key === 'Backspace') {
+                      e.preventDefault();
+                      handleDeleteImage(image.id);
+                    }
+                  }}
+                >
+                  <img
+                    src={image.url}
+                    alt={image.name}
+                    className="w-full h-full object-cover"
+                    draggable={false}
+                  />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteImage(image.id);
+                    }}
+                    className="absolute top-1 right-1 bg-black/50 hover:bg-destructive text-white rounded-sm p-1 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
+                    title="Delete image (Del)"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+                {/* Filename label */}
+                <p
+                  className="text-[10px] text-muted-foreground text-center leading-tight px-0.5 truncate"
+                  title={image.name}
+                >
+                  {image.name}
+                </p>
               </div>
             ))}
             
