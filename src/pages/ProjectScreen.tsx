@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { storage } from '@/lib/storage';
+import { migrateStorageToIndexedDB } from '@/lib/migrateStorage';
 import type { Project } from '@/types/animation';
 import { toast } from 'sonner';
 
@@ -20,15 +21,22 @@ const ProjectScreen: React.FC = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   useEffect(() => {
-    loadProjects();
+    const initializeStorage = async () => {
+      // Run migration first
+      await migrateStorageToIndexedDB();
+      // Then load projects
+      await loadProjects();
+    };
+    
+    initializeStorage();
   }, []);
 
-  const loadProjects = () => {
-    const allProjects = storage.getAllProjects();
+  const loadProjects = async () => {
+    const allProjects = await storage.getAllProjects();
     setProjects(allProjects.sort((a, b) => b.updatedAt - a.updatedAt));
   };
 
-  const handleCreateProject = () => {
+  const handleCreateProject = async () => {
     if (!newProjectName.trim()) {
       toast.error('Please enter a project name');
       return;
@@ -40,7 +48,7 @@ const ProjectScreen: React.FC = () => {
     }
 
     try {
-      const project = storage.createProject(newProjectName.trim(), canvasWidth, canvasHeight);
+      const project = await storage.createProject(newProjectName.trim(), canvasWidth, canvasHeight);
       storage.setCurrentProjectId(project.id);
       toast.success('Project created successfully');
       navigate(`/editor/${project.id}`);
@@ -55,10 +63,10 @@ const ProjectScreen: React.FC = () => {
     navigate(`/editor/${projectId}`);
   };
 
-  const handleDeleteProject = (projectId: string, projectName: string) => {
+  const handleDeleteProject = async (projectId: string, projectName: string) => {
     try {
-      storage.deleteProject(projectId);
-      loadProjects();
+      await storage.deleteProject(projectId);
+      await loadProjects();
       toast.success(`Project "${projectName}" deleted`);
     } catch (error) {
       toast.error('Failed to delete project');

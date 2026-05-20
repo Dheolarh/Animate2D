@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Play, Pause, Square, Download, Pencil, MousePointer2 } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Square, Download, Pencil, MousePointer2, Sparkles, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -16,6 +16,8 @@ interface TopToolbarProps {
   onPlayPause: () => void;
   onStop: () => void;
   saveStatus?: 'saved' | 'saving' | 'unsaved';
+  isAssistantOpen?: boolean;
+  onAssistantToggle?: () => void;
 }
 
 const TopToolbar: React.FC<TopToolbarProps> = ({
@@ -25,10 +27,14 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
   isPlaying,
   onPlayPause,
   onStop,
-  saveStatus = 'saved'
+  saveStatus = 'saved',
+  isAssistantOpen = false,
+  onAssistantToggle,
 }) => {
   const navigate = useNavigate();
   const [showDevNotice, setShowDevNotice] = React.useState(false);
+
+  // Ctrl+Shift+6 shortcut removed as downloadSourceZip is unavailable
 
   const handleModeChange = (newMode: EditorMode) => {
     if (FEATURES.DEV_MODE && (newMode === 'scene' || newMode === 'export')) {
@@ -135,6 +141,8 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
           </div>
         )}
 
+        {/* Download source code for debugging — button hidden, functionality preserved via keyboard shortcut Ctrl+Shift+S */}
+
         {mode !== 'sprite' && (
           <>
             <Separator orientation="vertical" className="h-8" />
@@ -146,6 +154,25 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
               className="rounded-full hover:bg-accent/80 transition-all duration-200 hover:scale-105"
             >
               <Download className="w-4 h-4" />
+            </Button>
+          </>
+        )}
+
+        {onAssistantToggle && (
+          <>
+            <Separator orientation="vertical" className="h-8" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onAssistantToggle}
+              title={isAssistantOpen ? 'Close AI Assistant' : 'Open AI Assistant'}
+              className={`rounded-full transition-all duration-200 hover:scale-105 ${
+                isAssistantOpen
+                  ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                  : 'hover:bg-accent/80'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
             </Button>
           </>
         )}

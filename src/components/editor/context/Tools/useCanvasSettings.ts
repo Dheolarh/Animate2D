@@ -1,18 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { CanvasState, AnimationSettings } from '../../types/spriteEditor';
+import type { Project } from '@/types/animation';
 
-export const useCanvasSettings = () => {
+export const useCanvasSettings = (project: Project) => {
   const [canvasState, setCanvasState] = useState<CanvasState>({
-    width: 512,
-    height: 512,
+    width: project.settings.canvasWidth,
+    height: project.settings.canvasHeight,
     showTransparentFrame: false,
-    backgroundColor: '#ffffff'
+    backgroundColor: project.settings.backgroundColor
   });
 
   const [animationSettings, setAnimationSettings] = useState<AnimationSettings>({
-    name: 'New Animation',
-    fps: 12
+    name: project.name,
+    fps: project.settings.fps
   });
+
+  // Update canvas state when project changes
+  useEffect(() => {
+    setCanvasState({
+      width: project.settings.canvasWidth,
+      height: project.settings.canvasHeight,
+      showTransparentFrame: false,
+      backgroundColor: project.settings.backgroundColor
+    });
+    setAnimationSettings({
+      name: project.name,
+      fps: project.settings.fps
+    });
+  }, [project.id, project.settings.canvasWidth, project.settings.canvasHeight, project.settings.backgroundColor, project.settings.fps, project.name]);
 
   const setShowTransparentFrame = (show: boolean) => {
     setCanvasState(prev => ({ ...prev, showTransparentFrame: show }));

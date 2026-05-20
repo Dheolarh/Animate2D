@@ -2,9 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { get, set } from 'idb-keyval';
 import type { EditorFrame } from '../../types/spriteEditor';
 
-const STORAGE_KEY = 'animate2d_frames';
-const CURRENT_FRAME_KEY = 'animate2d_current_frame';
-
 const defaultFrame = (): EditorFrame => ({
   id: `frame_${Date.now()}`,
   fabricData: null,
@@ -12,7 +9,11 @@ const defaultFrame = (): EditorFrame => ({
   opacity: 100,
 });
 
-export const useFrameManager = () => {
+export const useFrameManager = (projectId: string) => {
+  // Project-specific storage keys
+  const STORAGE_KEY = `animate2d_frames_${projectId}`;
+  const CURRENT_FRAME_KEY = `animate2d_current_frame_${projectId}`;
+
   const [frames, setFrames] = useState<EditorFrame[]>([]);
   const [currentFrameId, setCurrentFrameId] = useState<string | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -58,7 +59,7 @@ export const useFrameManager = () => {
       setCurrentFrameId(first.id);
       setIsHydrated(true);
     });
-  }, []);
+  }, [projectId, STORAGE_KEY, CURRENT_FRAME_KEY]);
 
   // ── Persist frames to IndexedDB (only after hydration) ─────────────────────
   useEffect(() => {
@@ -70,14 +71,14 @@ export const useFrameManager = () => {
         .catch(() => setSaveStatus('unsaved'));
     }, 500);
     return () => clearTimeout(timer);
-  }, [frames, isHydrated]);
+  }, [frames, isHydrated, STORAGE_KEY]);
 
   // ── Persist current frame ID ───────────────────────────────────────────────
   useEffect(() => {
     if (currentFrameId && isHydrated) {
       set(CURRENT_FRAME_KEY, currentFrameId).catch(() => {});
     }
-  }, [currentFrameId, isHydrated]);
+  }, [currentFrameId, isHydrated, CURRENT_FRAME_KEY]);
 
   const pushHistory = (currentFrames: EditorFrame[], currentId: string | null) => {
     setPast(p => [...p, { frames: currentFrames, currentFrameId: currentId }]);

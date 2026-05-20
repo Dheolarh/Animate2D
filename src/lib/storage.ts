@@ -1,53 +1,102 @@
+import { get, set, del, keys } from 'idb-keyval';
 import type { Project } from '@/types/animation';
 
-const PROJECTS_KEY = 'animate2d_projects';
+const PROJECTS_INDEX_KEY = 'animate2d_projects_index';
 const CURRENT_PROJECT_KEY = 'animate2d_current_project';
+const PROJECT_KEY_PREFIX = 'animate2d_project_';
+
+// Lightweight project metadata for listing
+interface ProjectMetadata {
+  id: string;
+  name: string;
+  thumbnail?: string;
+  createdAt: number;
+  updatedAt: number;
+  settings: {
+    canvasWidth: number;
+    canvasHeight: number;
+    fps: number;
+    backgroundColor: string;
+  };
+}
 
 export const storage = {
-  getAllProjects: (): Project[] => {
+  getAllProjects: async (): Promise<Project[]> => {
     try {
-      const data = localStorage.getItem(PROJECTS_KEY);
-      return data ? JSON.parse(data) : [];
+      const index = await get<ProjectMetadata[]>(PROJECTS_INDEX_KEY) || [];
+      const projects: Project[] = [];
+      
+      for (const meta of index) {
+        const project = await get<Project>(`${PROJECT_KEY_PREFIX}${meta.id}`);
+        if (project) {
+          projects.push(project);
+        }
+      }
+      
+      return projects;
     } catch (error) {
       console.error('Failed to load projects:', error);
       return [];
     }
   },
 
-  getProject: (id: string): Project | null => {
-    const projects = storage.getAllProjects();
-    return projects.find(p => p.id === id) || null;
+  getProject: async (id: string): Promise<Project | null> => {
+    try {
+      const project = await get<Project>(`${PROJECT_KEY_PREFIX}${id}`);
+      return project || null;
+    } catch (error) {
+      console.error('Failed to load project:', error);
+      return null;
+    }
   },
 
-  saveProject: (project: Project): void => {
+  saveProject: async (project: Project): Promise<void> => {
     try {
-      const projects = storage.getAllProjects();
-      const index = projects.findIndex(p => p.id === project.id);
-      
       const updatedProject = {
         ...project,
         updatedAt: Date.now()
       };
 
-      if (index >= 0) {
-        projects[index] = updatedProject;
+      // Save the full project
+      await set(`${PROJECT_KEY_PREFIX}${project.id}`, updatedProject);
+
+      // Update the index
+      const index = await get<ProjectMetadata[]>(PROJECTS_INDEX_KEY) || [];
+      const existingIndex = index.findIndex(p => p.id === project.id);
+      
+      const metadata: ProjectMetadata = {
+        id: updatedProject.id,
+        name: updatedProject.name,
+        thumbnail: updatedProject.thumbnail,
+        createdAt: updatedProject.createdAt,
+        updatedAt: updatedProject.updatedAt,
+        settings: updatedProject.settings
+      };
+
+      if (existingIndex >= 0) {
+        index[existingIndex] = metadata;
       } else {
-        projects.push(updatedProject);
+        index.push(metadata);
       }
 
-      localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
+      await set(PROJECTS_INDEX_KEY, index);
     } catch (error) {
       console.error('Failed to save project:', error);
       throw error;
     }
   },
 
-  deleteProject: (id: string): void => {
+  deleteProject: async (id: string): Promise<void> => {
     try {
-      const projects = storage.getAllProjects();
-      const filtered = projects.filter(p => p.id !== id);
-      localStorage.setItem(PROJECTS_KEY, JSON.stringify(filtered));
+      // Delete the project
+      await del(`${PROJECT_KEY_PREFIX}${id}`);
       
+      // Update the index
+      const index = await get<ProjectMetadata[]>(PROJECTS_INDEX_KEY) || [];
+      const filtered = index.filter(p => p.id !== id);
+      await set(PROJECTS_INDEX_KEY, filtered);
+      
+      // Clear current project if it's the deleted one
       const currentId = storage.getCurrentProjectId();
       if (currentId === id) {
         storage.setCurrentProjectId(null);
@@ -70,7 +119,7 @@ export const storage = {
     }
   },
 
-  createProject: (name: string, width = 1280, height = 720): Project => {
+  createProject: async (name: string, width = 1280, height = 720): Promise<Project> => {
     const now = Date.now();
     const project: Project = {
       id: `project_${now}`,
@@ -106,7 +155,7 @@ export const storage = {
       updatedAt: now
     };
 
-    storage.saveProject(project);
+    await storage.saveProject(project);
     return project;
   }
 };

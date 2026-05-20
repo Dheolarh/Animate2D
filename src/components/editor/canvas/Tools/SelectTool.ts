@@ -5,8 +5,17 @@ export class SelectTool implements DrawingTool {
   name = 'select';
 
   onActivate(canvas: fabric.Canvas, context: ToolContext) {
-    // Select tool relies on the default canvas reset in FabricDrawingCanvas.tsx
-    // which sets isDrawingMode = false, selection = true, etc.
+    canvas.selection = true;
+    canvas.defaultCursor = 'default';
+    canvas.hoverCursor = 'move';
+    // Make sure every object is interactive — especially shapes that were
+    // created with selectable/evented=false and newly loaded objects.
+    canvas.getObjects().forEach((obj) => {
+      obj.selectable = true;
+      obj.evented = true;
+      obj.hasControls = true;
+    });
+    canvas.renderAll();
   }
 
   onDeactivate(canvas: fabric.Canvas) {

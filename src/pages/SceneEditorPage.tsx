@@ -12,6 +12,7 @@ import Timeline from '@/components/editor/Timeline';
 import SpriteEditor from '@/components/editor/SpriteEditor';
 import PreviewMode from '@/components/editor/PreviewMode';
 import ExportMode from '@/components/editor/ExportMode';
+import SceneAssistant from '@/components/editor/SceneAssistant';
 
 const SceneEditorPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -21,6 +22,7 @@ const SceneEditorPage: React.FC = () => {
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const [playheadTime, setPlayheadTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
 
   useEffect(() => {
     if (!projectId) {
@@ -28,21 +30,27 @@ const SceneEditorPage: React.FC = () => {
       return;
     }
 
-    const loadedProject = storage.getProject(projectId);
-    if (!loadedProject) {
-      toast.error('Project not found');
-      navigate('/projects');
-      return;
-    }
+    const loadProject = async () => {
+      const loadedProject = await storage.getProject(projectId);
+      if (!loadedProject) {
+        toast.error('Project not found');
+        navigate('/projects');
+        return;
+      }
 
-    setProject(loadedProject);
+      setProject(loadedProject);
+    };
+
+    loadProject();
   }, [projectId, navigate]);
 
   useEffect(() => {
     if (!project) return;
 
     const autoSaveInterval = setInterval(() => {
-      storage.saveProject(project);
+      storage.saveProject(project).catch(err => {
+        console.error('Auto-save failed:', err);
+      });
     }, 30000);
 
     return () => clearInterval(autoSaveInterval);
@@ -50,7 +58,10 @@ const SceneEditorPage: React.FC = () => {
 
   const handleProjectUpdate = (updatedProject: Project) => {
     setProject(updatedProject);
-    storage.saveProject(updatedProject);
+    storage.saveProject(updatedProject).catch(err => {
+      console.error('Failed to save project:', err);
+      toast.error('Failed to save project');
+    });
   };
 
   const handleAddObject = (object: SceneObject) => {
@@ -113,20 +124,28 @@ const SceneEditorPage: React.FC = () => {
 
   if (mode === 'sprite') {
     return (
-      <div className="h-screen bg-background flex flex-col">
-        <SpriteEditor 
-          project={project} 
-          onProjectUpdate={handleProjectUpdate} 
-          onClose={() => setMode('scene')}
-          mode={mode}
-          onModeChange={setMode}
-          isPlaying={isPlaying}
-          onPlayPause={() => setIsPlaying(!isPlaying)}
-          onStop={() => {
-            setIsPlaying(false);
-            setPlayheadTime(0);
-          }}
-        />
+      <div className="h-screen bg-background flex flex-col overflow-hidden">
+        <div className="flex-1 flex overflow-hidden min-h-0">
+          <SpriteEditor 
+            project={project} 
+            onProjectUpdate={handleProjectUpdate} 
+            onClose={() => setMode('scene')}
+            mode={mode}
+            onModeChange={setMode}
+            isPlaying={isPlaying}
+            onPlayPause={() => setIsPlaying(!isPlaying)}
+            onStop={() => {
+              setIsPlaying(false);
+              setPlayheadTime(0);
+            }}
+            isAssistantOpen={isAssistantOpen}
+            onAssistantToggle={() => setIsAssistantOpen((prev) => !prev)}
+          />
+          <SceneAssistant
+            isOpen={isAssistantOpen}
+            onClose={() => setIsAssistantOpen(false)}
+          />
+        </div>
       </div>
     );
   }
@@ -151,6 +170,8 @@ const SceneEditorPage: React.FC = () => {
           isPlaying={false}
           onPlayPause={() => {}}
           onStop={() => {}}
+          isAssistantOpen={isAssistantOpen}
+          onAssistantToggle={() => setIsAssistantOpen((prev) => !prev)}
         />
         <ExportMode project={project} onClose={() => setMode('scene')} />
       </div>
@@ -169,6 +190,8 @@ const SceneEditorPage: React.FC = () => {
           setIsPlaying(false);
           setPlayheadTime(0);
         }}
+        isAssistantOpen={isAssistantOpen}
+        onAssistantToggle={() => setIsAssistantOpen((prev) => !prev)}
       />
 
       <div className="flex-1 flex overflow-hidden min-h-0">
@@ -216,6 +239,12 @@ const SceneEditorPage: React.FC = () => {
         <Inspector
           selectedObject={selectedObject}
           onUpdateObject={handleUpdateObject}
+        />
+
+        {/* AI Scene Assistant panel */}
+        <SceneAssistant
+          isOpen={isAssistantOpen}
+          onClose={() => setIsAssistantOpen(false)}
         />
       </div>
     </div>

@@ -1,3 +1,4 @@
+// @refresh reset
 import React, { createContext, useContext, ReactNode, useEffect, useRef, useCallback } from 'react';
 import * as fabric from 'fabric';
 
@@ -7,7 +8,7 @@ import type {
   EditorFrame,
   ToolType
 } from '../types/spriteEditor';
-import type { FrameImage, FrameText } from '@/types/animation';
+import type { FrameImage, FrameText, Project } from '@/types/animation';
 
 import { useCanvasSettings } from './Tools/useCanvasSettings';
 import { useFrameManager } from './Tools/useFrameManager';
@@ -104,6 +105,8 @@ interface SpriteEditorContextType {
   changeTextCharSpacing: (spacing: number) => void;
   shapeFillMode: 'stroke' | 'fill';
   changeShapeFillMode: (mode: 'stroke' | 'fill') => void;
+  shapeCornerRadius: number;
+  changeShapeCornerRadius: (radius: number) => void;
 
   // Fabric Canvas & Selection Actions
   fabricCanvas: fabric.Canvas | null;
@@ -112,6 +115,8 @@ interface SpriteEditorContextType {
   isSelectionLocked: boolean;
   isTextSelected: boolean;
   isGroupSelected: boolean;
+  isRectSelected: boolean;
+  isTriangleSelected: boolean;
   selectionOpacity: number;
   deleteSelection: () => void;
   toggleLockSelection: () => void;
@@ -122,12 +127,14 @@ const SpriteEditorContext = createContext<SpriteEditorContextType | undefined>(u
 
 interface SpriteEditorProviderProps {
   children: ReactNode;
+  projectId: string;
+  project: Project;
 }
 
-export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ children }) => {
-  const canvasSettings = useCanvasSettings();
-  const frameManager = useFrameManager();
-  const imageGallery = useImageGallery();
+export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ children, projectId, project }) => {
+  const canvasSettings = useCanvasSettings(project);
+  const frameManager = useFrameManager(projectId);
+  const imageGallery = useImageGallery(projectId);
 
   const canvasSelection = useCanvasSelection();
   const {
@@ -186,6 +193,8 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
   const nudgeSelectionRef = useRef(nudgeSelection);
   const groupSelectionRef = useRef(groupSelection);
   const ungroupSelectionRef = useRef(ungroupSelection);
+  const duplicateFrameRef = useRef(frameManager.duplicateFrame);
+  const currentFrameIdRef = useRef(frameManager.currentFrameId);
   useEffect(() => { undoRef.current = frameManager.undo; }, [frameManager.undo]);
   useEffect(() => { redoRef.current = frameManager.redo; }, [frameManager.redo]);
   useEffect(() => { hasSelectionRef.current = hasSelection; }, [hasSelection]);
@@ -196,6 +205,8 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
   useEffect(() => { nudgeSelectionRef.current = nudgeSelection; }, [nudgeSelection]);
   useEffect(() => { groupSelectionRef.current = groupSelection; }, [groupSelection]);
   useEffect(() => { ungroupSelectionRef.current = ungroupSelection; }, [ungroupSelection]);
+  useEffect(() => { duplicateFrameRef.current = frameManager.duplicateFrame; }, [frameManager.duplicateFrame]);
+  useEffect(() => { currentFrameIdRef.current = frameManager.currentFrameId; }, [frameManager.currentFrameId]);
 
   // Global Keyboard Shortcuts — registered ONCE, reads fresh values via refs
   useEffect(() => {
@@ -256,7 +267,16 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
           deleteSelectionRef.current();
           return;
         }
-        if ((e.ctrlKey || e.metaKey) && key === 'd') {
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && key === 'd') {
+          // Ctrl+Shift+D: Duplicate current frame
+          e.preventDefault();
+          if (currentFrameIdRef.current) {
+            duplicateFrameRef.current(currentFrameIdRef.current);
+          }
+          return;
+        }
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && key === 'd') {
+          // Ctrl+D: Duplicate selection
           e.preventDefault();
           duplicateSelectionRef.current();
           return;
@@ -275,6 +295,16 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
           }
           return;
         }
+      }
+
+      // Frame Actions (work even without selection)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && key === 'd') {
+        // Ctrl+Shift+D: Duplicate current frame (fallback if no selection)
+        e.preventDefault();
+        if (currentFrameIdRef.current) {
+          duplicateFrameRef.current(currentFrameIdRef.current);
+        }
+        return;
       }
     };
 
@@ -320,6 +350,8 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
     changeTextLineHeight: toolState.changeTextLineHeight,
     changeTextCharSpacing: toolState.changeTextCharSpacing,
     changeShapeFillMode: toolState.changeShapeFillMode,
+    shapeCornerRadius: toolState.shapeCornerRadius,
+    changeShapeCornerRadius: toolState.changeShapeCornerRadius,
 
     // Selection — override deleteSelection with the save-aware version
     ...canvasSelection,
@@ -344,8 +376,47 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
           if (textObj.charSpacing !== undefined) toolState.setTextCharSpacing(textObj.charSpacing);
         } else if (active.type === 'path') {
           const pathObj = active as fabric.Path;
-          if (pathObj.strokeWidth) toolState.setBrushSize(pathObj.strokeWidth);
-          if (pathObj.stroke && typeof pathObj.stroke === 'string') toolState.setBrushColor(pathObj.stroke);
+          if ((pathObj as any)._isRoundedTriangle) {
+            // Rounded-triangle: sync fill or stroke based on whichever is set
+            const fillColor = (pathObj as any).fill;
+            const strokeColor = (pathObj as any).stroke;
+            const isVisible = (c: any) => c && typeof c === 'string' && c !== 'transparent' && !c.match(/rgba\(\s*\d+,\s*\d+,\s*\d+,\s*0\s*\)/);
+            if (isVisible(fillColor)) {
+              toolState.setBrushColor(fillColor as string);
+              toolState.setShapeFillMode('fill');
+            } else if (isVisible(strokeColor)) {
+              toolState.setBrushColor(strokeColor as string);
+              toolState.setShapeFillMode('stroke');
+            }
+            toolState.setShapeCornerRadius((pathObj as any)._cornerRadius ?? 0);
+          } else {
+            // Free-draw brush path
+            if (pathObj.strokeWidth) toolState.setBrushSize(pathObj.strokeWidth);
+            if (pathObj.stroke && typeof pathObj.stroke === 'string') toolState.setBrushColor(pathObj.stroke);
+          }
+        } else if (
+          active.type === 'rect' ||
+          active.type === 'circle' ||
+          active.type === 'ellipse' ||
+          active.type === 'triangle'
+        ) {
+          // Sync color from whichever property is visibly set (not transparent or zero-alpha)
+          const fillColor = (active as any).fill;
+          const strokeColor = (active as any).stroke;
+          const isVisible = (c: any) => c && typeof c === 'string' && c !== 'transparent' && !c.match(/rgba\(\s*\d+,\s*\d+,\s*\d+,\s*0\s*\)/);
+          if (isVisible(fillColor)) {
+            toolState.setBrushColor(fillColor as string);
+            toolState.setShapeFillMode('fill');
+          } else if (isVisible(strokeColor)) {
+            toolState.setBrushColor(strokeColor as string);
+            toolState.setShapeFillMode('stroke');
+          }
+          if (active.type === 'rect') {
+            const rectObj = active as fabric.Rect;
+            toolState.setShapeCornerRadius(rectObj.rx ?? 0);
+          } else if (active.type === 'triangle') {
+            toolState.setShapeCornerRadius(0);
+          }
         }
       }
     };
@@ -365,7 +436,9 @@ export const SpriteEditorProvider: React.FC<SpriteEditorProviderProps> = ({ chil
     toolState.setTextStrokeColor,
     toolState.setTextStrokeWidth,
     toolState.setTextLineHeight,
-    toolState.setTextCharSpacing
+    toolState.setTextCharSpacing,
+    toolState.setShapeCornerRadius,
+    toolState.setShapeFillMode,
   ]);
 
 

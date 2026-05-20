@@ -150,4 +150,12 @@ All colors MUST be HSL.
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* Hide settings panel when parent is in fullscreen */
+  :fullscreen .hide-in-fullscreen,
+  :-webkit-full-screen .hide-in-fullscreen,
+  :-moz-full-screen .hide-in-fullscreen,
+  :-ms-fullscreen .hide-in-fullscreen {
+    display: none !important;
+  }
 }

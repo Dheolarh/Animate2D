@@ -6,9 +6,12 @@ const SplashScreen: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Automatic navigation removed as per user request.
-    // Navigation is now handled by the handleClick function.
-  }, []);
+    const timer = setTimeout(() => {
+      navigate('/projects');
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [navigate]);
 
   const handleClick = () => {
     navigate('/projects');

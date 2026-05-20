@@ -18,6 +18,8 @@ interface SpriteEditorProps {
   isPlaying: boolean;
   onPlayPause: () => void;
   onStop: () => void;
+  isAssistantOpen?: boolean;
+  onAssistantToggle?: () => void;
 }
 
 const SpriteEditorContent: React.FC<SpriteEditorProps> = ({ 
@@ -28,9 +30,36 @@ const SpriteEditorContent: React.FC<SpriteEditorProps> = ({
   onModeChange,
   isPlaying,
   onPlayPause,
-  onStop
+  onStop,
+  isAssistantOpen,
+  onAssistantToggle,
 }) => {
   const { animationSettings, saveStatus, isHydrated, frames, canvasState } = useSpriteEditor();
+
+  // Update project settings when canvas size, fps, or name changes
+  React.useEffect(() => {
+    if (!isHydrated) return;
+    
+    const needsUpdate = 
+      project.settings.canvasWidth !== canvasState.width ||
+      project.settings.canvasHeight !== canvasState.height ||
+      project.settings.fps !== animationSettings.fps ||
+      project.name !== animationSettings.name;
+
+    if (needsUpdate) {
+      const updatedProject = {
+        ...project,
+        name: animationSettings.name,
+        settings: {
+          ...project.settings,
+          canvasWidth: canvasState.width,
+          canvasHeight: canvasState.height,
+          fps: animationSettings.fps
+        }
+      };
+      onProjectUpdate(updatedProject);
+    }
+  }, [canvasState.width, canvasState.height, animationSettings.fps, animationSettings.name, isHydrated, project, onProjectUpdate]);
 
   // Update project thumbnail and settings with the latest frame data
   React.useEffect(() => {
@@ -109,6 +138,8 @@ const SpriteEditorContent: React.FC<SpriteEditorProps> = ({
         onPlayPause={onPlayPause}
         onStop={onStop}
         saveStatus={saveStatus}
+        isAssistantOpen={isAssistantOpen}
+        onAssistantToggle={onAssistantToggle}
       />
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden min-h-0">
@@ -131,7 +162,7 @@ const SpriteEditorContent: React.FC<SpriteEditorProps> = ({
 
 const SpriteEditor: React.FC<SpriteEditorProps> = (props) => {
   return (
-    <SpriteEditorProvider>
+    <SpriteEditorProvider projectId={props.project.id} project={props.project}>
       <SpriteEditorContent {...props} />
     </SpriteEditorProvider>
   );

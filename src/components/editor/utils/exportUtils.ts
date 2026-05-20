@@ -18,6 +18,7 @@ interface ExportOptions {
   height: number;
   transparent: boolean;
   backgroundColor: string;
+  filename?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -172,7 +173,7 @@ const download = (data: Uint8Array | Blob, filename: string, mime: string) => {
 // ---------------------------------------------------------------------------
 
 export const exportAsGif = async (opts: ExportOptions): Promise<void> => {
-  const { frames, fps, width, height, transparent } = opts;
+  const { frames, fps, width, height, transparent, filename = 'animation' } = opts;
   const playable = frames.filter((f) => f.fabricData || f.thumbnail);
   if (!playable.length) throw new Error('No frames to export');
 
@@ -197,7 +198,7 @@ export const exportAsGif = async (opts: ExportOptions): Promise<void> => {
   }
 
   gif.finish();
-  download(gif.bytes(), 'animation.gif', 'image/gif');
+  download(gif.bytes(), `${filename}.gif`, 'image/gif');
 };
 
 // ---------------------------------------------------------------------------
@@ -207,10 +208,11 @@ export const exportAsGif = async (opts: ExportOptions): Promise<void> => {
 
 export interface MP4ExportOptions extends ExportOptions {
   onProgress?: (ratio: number) => void;
+  filename?: string;
 }
 
 export const exportAsMP4 = async (opts: MP4ExportOptions): Promise<void> => {
-  const { frames, fps, width, height, transparent, onProgress } = opts;
+  const { frames, fps, width, height, transparent, onProgress, filename = 'animation' } = opts;
   const playable = frames.filter((f) => f.fabricData || f.thumbnail);
   if (!playable.length) throw new Error('No frames to export');
 
@@ -261,5 +263,5 @@ export const exportAsMP4 = async (opts: MP4ExportOptions): Promise<void> => {
   onProgress?.(1);
 
   const { buffer } = muxer.target;
-  download(new Uint8Array(buffer), 'animation.mp4', 'video/mp4');
+  download(new Uint8Array(buffer), `${filename}.mp4`, 'video/mp4');
 };

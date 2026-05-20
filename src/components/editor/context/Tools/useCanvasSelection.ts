@@ -7,6 +7,8 @@ export const useCanvasSelection = () => {
   const [isSelectionLocked, setIsSelectionLocked] = useState(false);
   const [isTextSelected, setIsTextSelected] = useState(false);
   const [isGroupSelected, setIsGroupSelected] = useState(false);
+  const [isRectSelected, setIsRectSelected] = useState(false);
+  const [isTriangleSelected, setIsTriangleSelected] = useState(false);
   const [selectionOpacity, setSelectionOpacity] = useState<number>(1);
 
   useEffect(() => {
@@ -19,9 +21,16 @@ export const useCanvasSelection = () => {
         setSelectionOpacity(active.opacity ?? 1);
         setIsTextSelected(active.type === 'i-text' || active.type === 'text');
         setIsGroupSelected(active.type === 'group');
+        setIsRectSelected(active.type === 'rect');
+        setIsTriangleSelected(
+          active.type === 'triangle' ||
+          (active.type === 'path' && !!(active as any)._isRoundedTriangle)
+        );
       } else {
         setIsTextSelected(false);
         setIsGroupSelected(false);
+        setIsRectSelected(false);
+        setIsTriangleSelected(false);
       }
     };
     fabricCanvas.on('selection:created', updateSelection);
@@ -201,6 +210,8 @@ export const useCanvasSelection = () => {
     isSelectionLocked,
     isTextSelected,
     isGroupSelected,
+    isRectSelected,
+    isTriangleSelected,
     selectionOpacity,
     deleteSelection,
     toggleLockSelection,

@@ -7,15 +7,13 @@ export class EraserTool implements DrawingTool {
 
   onActivate(canvas: fabric.Canvas, context: ToolContext) {
     canvas.isDrawingMode = true;
+    canvas.selection = false;
     const eraser = new EraserBrush(canvas);
     eraser.width = context.brushSize;
     canvas.freeDrawingBrush = eraser;
-    
-    // Disable selection while erasing to prevent full object selection/deletion
-    canvas.selection = false;
+    // erase2d needs objects to be evented so the eraser brush can intersect them.
     canvas.getObjects().forEach(obj => {
-      obj.selectable = false;
-      obj.evented = true; // Still needs to be evented for eraser intersection
+      obj.evented = true;
     });
   }
 

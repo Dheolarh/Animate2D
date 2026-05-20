@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Plus, Copy, Trash2, GripVertical } from 'lucide-react';
 import { useSpriteEditor } from './context/SpriteEditorContext';
@@ -24,8 +24,25 @@ const FrameTimeline: React.FC = () => {
 
   const dragIndexRef = useRef<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
+  const frameRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const currentFrame = frames.find(f => f.id === currentFrameId);
+
+  // Auto-scroll to current frame when it changes
+  useEffect(() => {
+    if (!currentFrameId || !scrollViewportRef.current) return;
+
+    const frameElement = frameRefs.current.get(currentFrameId);
+    if (!frameElement) return;
+
+    // Scroll the frame into view
+    frameElement.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center'
+    });
+  }, [currentFrameId, frames.length]);
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
     dragIndexRef.current = index;
@@ -129,10 +146,17 @@ const FrameTimeline: React.FC = () => {
       
       <div className="flex-1 overflow-hidden p-2">
         <ScrollArea className="w-full h-full whitespace-nowrap">
-          <div className="flex items-center gap-2 h-full pb-3">
+          <div ref={scrollViewportRef} className="flex items-center gap-2 h-full pb-3">
             {frames.map((frame, index) => (
               <div
                 key={frame.id}
+                ref={(el) => {
+                  if (el) {
+                    frameRefs.current.set(frame.id, el);
+                  } else {
+                    frameRefs.current.delete(frame.id);
+                  }
+                }}
                 draggable
                 onDragStart={(e) => handleDragStart(e, index)}
                 onDragEnd={handleDragEnd}

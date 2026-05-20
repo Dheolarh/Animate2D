@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Trash2, Lock, Unlock, Settings2, Type, Paintbrush, Copy, ChevronsUp, ChevronsDown, ChevronUp, ChevronDown, Group, Ungroup } from 'lucide-react';
+import { Trash2, Lock, Unlock, Settings2, Type, Paintbrush, Copy, ChevronsUp, ChevronsDown, ChevronUp, ChevronDown, Group, Ungroup, RectangleHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSpriteEditor } from './context/SpriteEditorContext';
 import { Separator } from '@/components/ui/separator';
@@ -20,6 +20,7 @@ const PropertiesToolbar: React.FC = () => {
     hasSelection, isSelectionLocked, deleteSelection, toggleLockSelection, duplicateSelection,
     bringToFront, bringForward, sendBackward, sendToBack,
     shapeFillMode, changeShapeFillMode,
+    shapeCornerRadius, changeShapeCornerRadius,
     textSize, changeTextSize,
     textFontFamily, changeTextFontFamily,
     textStrokeColor, changeTextStrokeColor,
@@ -30,14 +31,17 @@ const PropertiesToolbar: React.FC = () => {
     isGroupSelected,
     groupSelection,
     ungroupSelection,
+    isRectSelected,
+    isTriangleSelected,
   } = useSpriteEditor();
 
+  // Derived visibility flags
+  const isShapeToolActive = activeTool === 'rectangle' || activeTool === 'circle' || activeTool === 'triangle';
+  // rect or triangle (including rounded-triangle paths) selected in scene
+  const isShapeSelected = isRectSelected || isTriangleSelected;
   const isTextMode = activeTool === 'text' || isTextSelected;
 
-  const showToolbar = activeTool === 'brush' || activeTool === 'eraser' || activeTool === 'rectangle' || activeTool === 'circle' || activeTool === 'triangle' || activeTool === 'text' || hasSelection;
-
   // Must be called unconditionally BEFORE any early returns (Rules of Hooks)
-  // Extract RGBA for text stroke color picker
   const [r, g, b, a] = useMemo(() => {
     if (textStrokeColor.startsWith('rgba')) {
       const parts = textStrokeColor.match(/[\d.]+/g);
@@ -52,6 +56,8 @@ const PropertiesToolbar: React.FC = () => {
     }
     return [0, 0, 0, 1];
   }, [textStrokeColor]);
+
+  const showToolbar = activeTool === 'brush' || activeTool === 'eraser' || isShapeToolActive || activeTool === 'text' || hasSelection;
 
   if (!showToolbar) return null;
 
@@ -70,8 +76,8 @@ const PropertiesToolbar: React.FC = () => {
   return (
     <div className="absolute right-0 top-0 bottom-0 w-16 border-l border-border bg-card flex flex-col items-center py-4 gap-4 z-20 shadow-sm animate-in fade-in slide-in-from-right-4 duration-200 overflow-y-auto no-scrollbar">
       
-      {/* 1. ERASER, BRUSH or SHAPES */}
-      {(activeTool === 'brush' || activeTool === 'eraser' || activeTool === 'rectangle' || activeTool === 'circle' || activeTool === 'triangle') && (
+      {/* 1. Stroke size — brush, eraser, and any shape tool */}
+      {(activeTool === 'brush' || activeTool === 'eraser' || isShapeToolActive) && (
         <div className="flex flex-col items-center gap-2">
           <span className="text-[10px] font-mono text-muted-foreground">{brushSize}px</span>
           <div className="h-32 flex items-center justify-center py-2">
@@ -85,8 +91,8 @@ const PropertiesToolbar: React.FC = () => {
         </div>
       )}
 
-      {/* 2. SHAPES (Rectangle, Circle, Triangle) */}
-      {(activeTool === 'rectangle' || activeTool === 'circle' || activeTool === 'triangle') && (
+      {/* 2. Fill/Stroke style — shape tool active OR rect/triangle selected in scene */}
+      {(isShapeToolActive || isShapeSelected) && (
         <div className="flex flex-col items-center gap-2">
           <span className="text-[10px] font-medium text-muted-foreground">Style</span>
           <div className="flex flex-col gap-1 bg-muted p-1 rounded-lg">
@@ -108,7 +114,48 @@ const PropertiesToolbar: React.FC = () => {
         </div>
       )}
 
-      {/* 3. TEXT */}
+      {/* 3. Corner radius — rectangle/triangle tool active OR rect/triangle selected in scene */}
+      {(activeTool === 'rectangle' || activeTool === 'triangle' || isShapeSelected) && (
+        <div className="flex flex-col items-center gap-2 w-full px-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline" size="icon"
+                className="w-10 h-10 rounded-xl"
+                title={`Corner Radius: ${shapeCornerRadius}px`}
+              >
+                <RectangleHorizontal className="w-4 h-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent side="left" className="w-52 p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-muted-foreground">Corner Radius</label>
+                <span className="text-[10px] font-mono">{shapeCornerRadius}px</span>
+              </div>
+              <input
+                type="range" min="0" max="100" step="1"
+                value={shapeCornerRadius}
+                onChange={e => changeShapeCornerRadius(parseInt(e.target.value))}
+                className="accent-primary w-full"
+              />
+              <div className="flex items-center gap-2">
+                <input
+                  type="number" min="0" max="500" step="1"
+                  value={shapeCornerRadius}
+                  onChange={e => {
+                    const v = Math.max(0, parseInt(e.target.value) || 0);
+                    changeShapeCornerRadius(v);
+                  }}
+                  className="w-full h-7 text-xs text-center border border-border rounded bg-muted/40 font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <span className="text-xs text-muted-foreground shrink-0">px</span>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+      )}
+
+      {/* 4. TEXT */}
       {isTextMode && (
         <div className="flex flex-col items-center gap-3 w-full px-2">
           <span className="text-[10px] font-medium text-muted-foreground">Text</span>
@@ -212,7 +259,6 @@ const PropertiesToolbar: React.FC = () => {
         <>
           <Separator className="w-8 mt-auto" />
           <div className="flex flex-col items-center gap-1 mb-1">
-            {/* Layer controls */}
             <button
               onClick={bringToFront}
               className="w-10 h-7 flex items-center justify-center rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
@@ -244,7 +290,6 @@ const PropertiesToolbar: React.FC = () => {
 
             <Separator className="w-6 my-1" />
 
-            {/* Object actions */}
             <Button
               variant="ghost" size="icon" className="w-10 h-10 rounded-xl"
               onClick={toggleLockSelection} title={isSelectionLocked ? "Unlock Object" : "Lock Object"}
@@ -278,3 +323,4 @@ const PropertiesToolbar: React.FC = () => {
 };
 
 export default PropertiesToolbar;
+

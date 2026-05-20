@@ -3,8 +3,6 @@ import { get, set } from 'idb-keyval';
 import type { FrameImage, FrameText } from '@/types/animation';
 import type { UploadedImage } from '../SpriteEditorContext';
 
-const IMAGE_GALLERY_KEY = 'animate2d_image_gallery';
-
 /** Convert any URL (blob: or data:) to a base64 data URL for persistence */
 const toDataUrl = (url: string): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -23,7 +21,10 @@ const toDataUrl = (url: string): Promise<string> =>
     img.src = url;
   });
 
-export const useImageGallery = () => {
+export const useImageGallery = (projectId: string) => {
+  // Project-specific storage key
+  const IMAGE_GALLERY_KEY = `animate2d_image_gallery_${projectId}`;
+
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [isGalleryHydrated, setIsGalleryHydrated] = useState(false);
   const [selectedImage, setSelectedImage] = useState<FrameImage | null>(null);
@@ -38,7 +39,7 @@ export const useImageGallery = () => {
         setIsGalleryHydrated(true);
       })
       .catch(() => setIsGalleryHydrated(true));
-  }, []);
+  }, [projectId, IMAGE_GALLERY_KEY]);
 
   // ── Persist to IndexedDB whenever list changes (only post-hydration) ──────
   useEffect(() => {
@@ -47,7 +48,7 @@ export const useImageGallery = () => {
       // IndexedDB write failure is non-fatal — gallery still works in memory
       console.warn('Failed to persist image gallery to IndexedDB');
     });
-  }, [uploadedImages, isGalleryHydrated]);
+  }, [uploadedImages, isGalleryHydrated, IMAGE_GALLERY_KEY]);
 
   /**
    * Add an image to the gallery.

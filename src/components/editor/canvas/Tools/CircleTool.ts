@@ -1,11 +1,12 @@
 import * as fabric from 'fabric';
-import { BaseShapeTool } from './BaseShapeTool';
+import { BaseShapeTool, fabricPaintFromColor } from './BaseShapeTool';
 import { ToolContext } from './Tool';
 
 export class CircleTool extends BaseShapeTool {
   name = 'circle';
 
   createShape(pointer: { x: number, y: number }, context: ToolContext): fabric.Object {
+    const paint = fabricPaintFromColor(context.brushColor);
     return new fabric.Ellipse({
       left: pointer.x,
       top: pointer.y,
@@ -15,8 +16,8 @@ export class CircleTool extends BaseShapeTool {
       ry: 0,
       width: 0,
       height: 0,
-      fill: context.shapeFillMode === 'fill' ? context.brushColor : 'rgba(0,0,0,0)',
-      stroke: context.shapeFillMode === 'fill' ? 'rgba(0,0,0,0)' : context.brushColor,
+      fill: context.shapeFillMode === 'fill' ? (paint as any) : 'rgba(0,0,0,0)',
+      stroke: context.shapeFillMode === 'fill' ? 'rgba(0,0,0,0)' : (paint as any),
       strokeWidth: context.shapeFillMode === 'fill' ? 0 : context.brushSize,
       selectable: false,
       evented: false,

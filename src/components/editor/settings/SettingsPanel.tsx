@@ -47,6 +47,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ project, onProjectUpdate,
     height: canvasState.height,
     transparent: canvasState.showTransparentFrame,
     backgroundColor: canvasState.backgroundColor || '#ffffff',
+    filename: project.name || 'animation',
   };
 
   const runExport = async (label: string, fn: () => Promise<void>) => {
@@ -110,7 +111,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ project, onProjectUpdate,
   const mp4Label = 'Export as .mp4';
 
   return (
-    <div className="w-60 border-r bg-card flex flex-col h-full overflow-hidden shrink-0 shadow-sm z-10 relative">
+    <div className="w-60 border-r bg-card flex flex-col h-full overflow-hidden shrink-0 shadow-sm z-10 relative hide-in-fullscreen">
       <div className="flex-1 overflow-y-auto p-3 space-y-5">
         <AnimationSettings />
         <Separator className="opacity-50" />

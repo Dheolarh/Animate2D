@@ -7,10 +7,6 @@ export class TextTool implements DrawingTool {
   onActivate(canvas: fabric.Canvas, context: ToolContext) {
     canvas.selection = false;
     canvas.defaultCursor = 'text';
-    canvas.getObjects().forEach(obj => {
-      obj.selectable = false;
-      obj.evented = false;
-    });
   }
 
   onDeactivate(canvas: fabric.Canvas) {
@@ -18,6 +14,7 @@ export class TextTool implements DrawingTool {
   }
 
   onMouseUp(canvas: fabric.Canvas, opt: any, context: ToolContext): fabric.Object | null {
+    if (!opt?.scenePoint) return null;
     const pointer = opt.scenePoint;
     
     const textObj = new fabric.IText('Text', {
@@ -32,8 +29,6 @@ export class TextTool implements DrawingTool {
       strokeWidth: context.textStrokeWidth,
       lineHeight: context.textLineHeight,
       charSpacing: context.textCharSpacing,
-      selectable: true,
-      evented: true,
       erasable: true,
     });
 
